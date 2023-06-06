@@ -68,26 +68,6 @@ void get_third_name(char *rname, char *name) {
     memcpy(name, rname + start + 1, rname[start]);
 }
 
-int parse_rr(char *packet, struct DNS_RR *rr) {
-    int len = get_rname_length(packet);
-    rr->domain = malloc(len);
-    memcpy(rr->domain, packet, len);
-    int offset = len;
-    memcpy(&rr->type, packet + offset, sizeof(rr->type));
-    offset += sizeof(rr->type);
-    memcpy(&rr->rclass, packet + offset, sizeof(rr->rclass));
-    offset += sizeof(rr->rclass);
-    memcpy(&rr->ttl, packet + offset, sizeof(rr->ttl));
-    offset += sizeof(rr->ttl);
-    memcpy(&rr->length, packet + offset, sizeof(rr->length));
-    offset += sizeof(rr->length);
-    unsigned short length = ntohs(rr->length);
-    rr->rdata = malloc(length);
-    memcpy(rr->rdata, packet + offset, length);
-    offset += length;
-    return offset;
-}
-
 int get_local_cache(char *packet, struct DNS_Query *query, short offset) {
     FILE *fp = fopen("./data/local_server_cache.txt", "r");
     int ret = 0;
@@ -102,7 +82,7 @@ int get_local_cache(char *packet, struct DNS_Query *query, short offset) {
     if (ntohs(query->qtype) == PTR) {
         parse_ptr(query->name, rname);
     } else {
-        parse_name(query->name, rname);
+        parse_domain(query->name, rname);
     }
 
     char rr_offset = sizeof(struct DNS_Header);
@@ -167,7 +147,7 @@ int load_data(char *packet, struct DNS_Query *query, short *offset,
     if (ntohs(query->qtype) == PTR) {
         parse_ptr(query->name, rname);
     } else {
-        parse_name(query->name, rname);
+        parse_domain(query->name, rname);
     }
 
     char rr_offset = sizeof(struct DNS_Header);
@@ -240,15 +220,15 @@ void add_local_cache(char *packet, int ans_num) {
         get_type_name(ntohs(rr->type), rtype);
         if (ntohs(rr->type) == PTR) {
             parse_ptr(rr->domain, name);
-            parse_name(rr->rdata, rdata);
+            parse_domain(rr->rdata, rdata);
         }
 
         else {
-            parse_name(rr->domain, name);
+            parse_domain(rr->domain, name);
             if (ntohs(rr->type) == A)
                 addr_to_text(rdata, rr->rdata);
             else
-                parse_name(rr->rdata, rdata);
+                parse_domain(rr->rdata, rdata);
         }
         fprintf(fp, "%s %d %s %s %s\n", name, ttl, rclass, rtype, rdata);
     }

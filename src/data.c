@@ -18,22 +18,22 @@ void init_header(dns_header *header, uint16_t id, uint16_t flags,
 }
 
 int parse_header(dns_header *header, uint8_t buffer[]) {
-    int offset = 0;
+    int size = 0;
 
-    header->id = ntohs(*(uint16_t *)(buffer + offset));
-    offset += sizeof(uint16_t);
-    header->flags = ntohs(*(uint16_t *)(buffer + offset));
-    offset += sizeof(uint16_t);
-    header->num_query = ntohs(*(uint16_t *)(buffer + offset));
-    offset += sizeof(uint16_t);
-    header->num_answer_rr = ntohs(*(uint16_t *)(buffer + offset));
-    offset += sizeof(uint16_t);
-    header->num_authority_rr = ntohs(*(uint16_t *)(buffer + offset));
-    offset += sizeof(uint16_t);
-    header->num_addition_rr = ntohs(*(uint16_t *)(buffer + offset));
-    offset += sizeof(uint16_t);
+    header->id = ntohs(*(uint16_t *)(buffer + size));
+    size += sizeof(uint16_t);
+    header->flags = ntohs(*(uint16_t *)(buffer + size));
+    size += sizeof(uint16_t);
+    header->num_query = ntohs(*(uint16_t *)(buffer + size));
+    size += sizeof(uint16_t);
+    header->num_answer_rr = ntohs(*(uint16_t *)(buffer + size));
+    size += sizeof(uint16_t);
+    header->num_authority_rr = ntohs(*(uint16_t *)(buffer + size));
+    size += sizeof(uint16_t);
+    header->num_addition_rr = ntohs(*(uint16_t *)(buffer + size));
+    size += sizeof(uint16_t);
 
-    return offset;
+    return size;
 }
 
 void hton_header(dns_header *header) {
@@ -65,27 +65,27 @@ int add_header(uint8_t buffer[], dns_header *header) {
     return size;
 }
 
-void init_query(dns_query *query, char *domain, uint16_t type) {
+void init_query(dns_query *query, char domain[], uint16_t type) {
     query->domain = domain;
     query->type = type;
     query->class = IN;
 }
 
 int parse_query(dns_query *query, uint8_t buffer[]) {
-    int offset = 0;
+    int size = 0;
 
     unsigned char *rdomain[DOMAIN_MAX_LENGTH] = {0};
     strcpy(rdomain, buffer);
-    query->domain = (uint8_t *)malloc(strlen(buffer) + 1);
-    parse_name(rdomain, query->domain);
-    offset += strlen(buffer) + 1;
+    query->domain = (uint8_t *)malloc(strlen(rdomain) + 1);
+    parse_domain(query->domain, rdomain);
+    size += strlen(rdomain) + 1;
 
-    query->type = ntohs(*(uint16_t *)(buffer + offset));
-    offset += sizeof(uint16_t);
-    query->class = ntohs(*(uint16_t *)(buffer + offset));
-    offset += sizeof(uint16_t);
+    query->type = ntohs(*(uint16_t *)(buffer + size));
+    size += sizeof(uint16_t);
+    query->class = ntohs(*(uint16_t *)(buffer + size));
+    size += sizeof(uint16_t);
 
-    return offset;
+    return size;
 }
 
 void hton_query(dns_query *query) {
@@ -105,7 +105,7 @@ int add_query(uint8_t buffer[], dns_query *query) {
     if (query->type == PTR)
         serialize_ptr(rdomain, query->domain);
     else
-        serialize_name(rdomain, query->domain);
+        serialize_domain(rdomain, query->domain);
     strcpy(buffer, rdomain);
     size += strlen(rdomain) + 1;
 
@@ -123,41 +123,52 @@ void free_query(dns_query *query) {
     free(query);
 }
 
-void init_rr(dns_rr *rr, uint16_t type, uint32_t ttl, char *addr, char offset,
-             char *domain) {
-    if (offset != 0) {
-        rr->domain = malloc(2);
-        rr->domain[0] = NAME_PTR;
-        rr->domain[1] = offset;
-    } else {
-        rr->domain = malloc(strlen(domain) + 2);
-        serialize_name(rr->domain, domain);
-    }
-
-    rr->class = htons(IN);
-    rr->type = htons(type);
-    rr->ttl = htonl(ttl);
-
-    unsigned short len = 0;
-    if (type == A) {
-        len = 4;
-        rr->data = malloc(len);
-        serialize_addr(addr, &rr->data);
-    } else if (type == MX) {
-        len = strlen(addr) + 4;
-        rr->data = malloc(len);
-
-        serialize_name(rr->data + 2, addr);
-    } else {
-        len = strlen(addr) + 2;
-        rr->data = malloc(len);
-        serialize_name(rr->data, addr);
-    }
-
-    rr->length = htons(len);
+void init_rr(dns_rr *rr, char domain[], uint16_t type, uint32_t ttl,
+             char data[]) {
+    rr->domain = domain;
+    rr->type = type;
+    rr->class = IN;
+    rr->ttl = ttl;
+    rr->length = strlen(data) + 1;
+    rr->data = data;
 }
 
-ssize_t get_records(dns_rr *records[], const char *path) {
+int parse_rr(dns_rr *rr, uint8_t buffer[]) {
+    int size = 0;
+
+    unsigned char *rdomain[DOMAIN_MAX_LENGTH] = {0};
+    strcpy(rdomain, buffer);
+    rr->domain = (char *)malloc(strlen(rdomain) + 1);
+    parse_domain(rr->domain, rdomain);
+    size += strlen(rdomain) + 1;
+
+    rr->type = ntohs(*(uint16_t *)(buffer + size));
+    size += sizeof(uint16_t);
+    rr->class = ntohs(*(uint16_t *)(buffer + size));
+    size += sizeof(uint16_t);
+    rr->ttl = ntohl(*(uint32_t *)(buffer + size));
+    size += sizeof(uint32_t);
+    rr->length = ntohs(*(uint16_t *)(buffer + size));
+    size += sizeof(uint16_t);
+
+    if (rr->type == A) {
+        char addr_string[DOMAIN_MAX_LENGTH];
+        addr_to_string(addr_string, *(uint32_t *)(buffer + size));
+        rr->data = (char *)malloc(strlen(addr_string) + 1);
+        strcpy(rr->data, addr_string);
+        size += 4;
+    } else {
+        memset(rdomain, 0, DOMAIN_MAX_LENGTH);
+        strcpy(rdomain, buffer + size);
+        rr->data = (char *)malloc(strlen(rdomain) + 1);
+        parse_domain(rr->data, rdomain);
+        size += strlen(rdomain) + 1;
+    }
+
+    return size;
+}
+
+ssize_t get_records(dns_rr *records[], const char path[]) {
     FILE *f = fopen(path, "r");
 
     *records = (dns_rr *)malloc(ARRAY_CAPACITY * sizeof(dns_rr));
@@ -168,14 +179,14 @@ ssize_t get_records(dns_rr *records[], const char *path) {
         dns_rr *rr = *records + count;
         char class[8] = {0};
         char type[8] = {0};
-        rr->domain = (uint8_t *)malloc(DOMAIN_MAX_LENGTH);
-        rr->data = (uint8_t *)malloc(DOMAIN_MAX_LENGTH);
+        rr->domain = (char *)malloc(DOMAIN_MAX_LENGTH);
+        rr->data = (char *)malloc(DOMAIN_MAX_LENGTH);
 
         memset(rr->domain, 0, DOMAIN_MAX_LENGTH);
         fscanf(f, "%s %d %s %s %s\n", rr->domain, &rr->ttl, class, type,
                rr->data);
-        rr->domain = (uint8_t *)realloc(rr->domain, (strlen(rr->domain) + 1));
-        rr->data = (uint8_t *)realloc(rr->data, (strlen(rr->data) + 1));
+        rr->domain = (char *)realloc(rr->domain, (strlen(rr->domain) + 1));
+        rr->data = (char *)realloc(rr->data, (strlen(rr->data) + 1));
         rr->length = strlen(rr->data) + 2;
         rr->type = get_type(type);
         rr->class = get_class(class);
@@ -198,7 +209,7 @@ int find_ns(dns_rr records[], int count, dns_query *query) {
     return -1;
 }
 
-int find_a_for_ns(dns_rr records[], int count, const char *ns_domain) {
+int find_a_for_ns(dns_rr records[], int count, const char ns_domain[]) {
     for (int i = 0; i < count; i++) {
         if (records[i].type == A && !strcmp(records[i].domain, ns_domain))
             return i;
@@ -224,18 +235,18 @@ int add_domain_rr(uint8_t buffer[], dns_rr *rr) {
     int size = 0;
 
     unsigned char *rdomain[DOMAIN_MAX_LENGTH] = {0};
-    serialize_name(rdomain, rr->domain);
+    serialize_domain(rdomain, rr->domain);
     strcpy(buffer, rdomain);
     size += strlen(rdomain) + 1;
 
     hton_rr(rr);
     memcpy(buffer + size, (uint8_t *)rr + sizeof(uint8_t *),
-           sizeof(struct DNS_RR) - 2 * sizeof(uint8_t *));
+           sizeof(dns_rr) - 2 * sizeof(uint8_t *));
     ntoh_rr(rr);
-    size += sizeof(struct DNS_RR) - 2 * sizeof(uint8_t *);
+    size += sizeof(dns_rr) - 2 * sizeof(uint8_t *);
 
     memset(rdomain, 0, DOMAIN_MAX_LENGTH);
-    serialize_name(rdomain, rr->data);
+    serialize_domain(rdomain, rr->data);
     strcpy(buffer + size, rdomain);
     size += strlen(rdomain) + 1;
 
@@ -246,7 +257,7 @@ int add_ip_rr(uint8_t buffer[], dns_rr *rr) {
     int size = 0;
 
     unsigned char *rdomain[DOMAIN_MAX_LENGTH] = {0};
-    serialize_name(rdomain, rr->domain);
+    serialize_domain(rdomain, rr->domain);
     strcpy(buffer, rdomain);
     size += strlen(rdomain) + 1;
 

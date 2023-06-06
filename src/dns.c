@@ -43,7 +43,7 @@ uint32_t addr_to_binary(const char addr_string[]) {
     return addr_binary;
 }
 
-void addr_to_string(char *addr_string, uint32_t addr_binary) {
+void addr_to_string(char addr_string[], uint32_t addr_binary) {
     struct in_addr a;
     memset(&a, 0, sizeof(struct in_addr));
     a.s_addr = addr_binary;
@@ -51,14 +51,14 @@ void addr_to_string(char *addr_string, uint32_t addr_binary) {
     memcpy(addr_string, tmp, strlen(tmp));
 }
 
-void init_receiver_addr(struct sockaddr_in *sockaddr, const char *addr) {
+void init_receiver_addr(struct sockaddr_in *sockaddr, const char addr[]) {
     memset(sockaddr, 0, sizeof(struct sockaddr_in));
     sockaddr->sin_family = AF_INET;
     sockaddr->sin_addr.s_addr = inet_addr(addr);
     sockaddr->sin_port = htons(DNS_PORT);
 }
 
-void init_sender_addr(struct sockaddr_in *sockaddr, const char *addr) {
+void init_sender_addr(struct sockaddr_in *sockaddr, const char addr[]) {
     memset(sockaddr, 0, sizeof(struct sockaddr_in));
     sockaddr->sin_family = AF_INET;
     sockaddr->sin_addr.s_addr = inet_addr(addr);
@@ -87,7 +87,7 @@ uint16_t get_class(const char class[]) {
         return 0;
 }
 
-void parse_name(char domain[], const unsigned char rdomain[]) {
+void parse_domain(char domain[], const unsigned char rdomain[]) {
     int i = 0;
     while (rdomain[i] != '\0') {
         memcpy(domain + i, rdomain + i + 1, rdomain[i]);
@@ -97,7 +97,7 @@ void parse_name(char domain[], const unsigned char rdomain[]) {
     domain[i - 1] = '\0';
 }
 
-void serialize_name(unsigned char rdomain[], const char domain[]) {
+void serialize_domain(unsigned char rdomain[], const char domain[]) {
     int len = strlen(domain) + 1;
     memcpy(rdomain + 1, domain, len);
     int m = 0;
@@ -114,12 +114,12 @@ void serialize_name(unsigned char rdomain[], const char domain[]) {
     rdomain[m] = --count;
 }
 
-void parse_ptr(char *ip, const char *data) {
+void parse_ptr(char ip[], const unsigned char rdomain[]) {
     int i = 0;
     char tmp[128];
     for (int j = 0; j < 4; j++) {
-        memcpy(tmp + i, data + i + 1, data[i]);
-        i += (data[i] + 1);
+        memcpy(tmp + i, rdomain + i + 1, rdomain[i]);
+        i += (rdomain[i] + 1);
         tmp[i - 1] = '.';
     }
     tmp[i - 1] = '\0';
@@ -129,7 +129,7 @@ void parse_ptr(char *ip, const char *data) {
     }
 }
 
-void serialize_ptr(char *data, const char *ip) {
+void serialize_ptr(unsigned char rdomain[], const char ip[]) {
     char tmp[128] = {0};
     strcpy(tmp, ip);
     int len = strlen(ip);
@@ -138,5 +138,5 @@ void serialize_ptr(char *data, const char *ip) {
         tmp[i] = ip[len - i - 1];
     }
     strcat(tmp, ".in-addr.arpa");
-    serialize_name(data, tmp);
+    serialize_domain(rdomain, tmp);
 }

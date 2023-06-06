@@ -1,4 +1,3 @@
-#include "client.h"
 #include "data.h"
 #include "dns.h"
 #include "server.h"
@@ -21,11 +20,11 @@ int main() {
         int client_sock = tcp_accept(sock, &local_server_addr);
         uint8_t buffer[BUFSIZE] = {0};
 
-        dns_header *header = (dns_header *)malloc(sizeof(dns_header));
-        dns_query *query = (dns_query *)malloc(sizeof(dns_query));
-
         int receive_len = 0;
         while (receive_len = tcp_receive(client_sock, buffer)) {
+            dns_header *header = (dns_header *)malloc(sizeof(dns_header));
+            dns_query *query = (dns_query *)malloc(sizeof(dns_query));
+
             int header_len = parse_header(buffer + 2, header);
             parse_query(query, buffer + 2 + header_len);
             memset(buffer, 0, BUFSIZE);
@@ -41,6 +40,7 @@ int main() {
                     perror("Database error!");
                     exit(EXIT_FAILURE);
                 }
+
                 length += add_header(buffer + 2, header);
                 length += add_query(buffer + 2 + length, query);
                 length += add_domain_rr(buffer + 2 + length, records + ns_idx);
@@ -51,6 +51,7 @@ int main() {
                     header, header->id,
                     generate_flags(QR_RESPONSE, OP_STD, 1, R_NAME_ERROR),
                     header->num_query, 0, 0, 0);
+
                 length += add_header(buffer + 2, header);
                 length += add_query(buffer + 2 + length, query);
                 *((unsigned short *)buffer) = htons(length);
