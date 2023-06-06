@@ -106,6 +106,7 @@ int add_query(uint8_t buffer[], dns_query *query) {
         serialize_ptr(rdomain, query->domain);
     else
         serialize_name(rdomain, query->domain);
+    strcpy(buffer, rdomain);
     size += strlen(rdomain) + 1;
 
     hton_query(query);
