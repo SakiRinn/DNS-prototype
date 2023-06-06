@@ -52,6 +52,7 @@ int main() {
         set_socket_reuse(tcp_sock);
         server_bind(tcp_sock, &send_addr);
         tcp_connect(tcp_sock, &root_server_addr);
+        printf(" > Trace to %s\n", ROOT_SERVER_IP);
         tcp_send(tcp_sock, query_buffer, udp_recv_len + 2);
 
         dns_rr *records;
@@ -82,7 +83,7 @@ int main() {
             printf(" > Result: \t%s\n", records[idx].data);
             if (query->type == MX)
                 printf(" > MX IP: \t%s\n", records[a_idx].data);
-            printf(" > Load from cache!");
+            printf(" > Load from cache!\n");
             printf("****************************************\n");
         }
 
@@ -117,6 +118,7 @@ int main() {
                     } else {
                         struct sockaddr_in forward_addr;
                         init_receiver_addr(&forward_addr, records[a_idx].data);
+                        printf(" > Trace to %s\n", records[a_idx].data);
 
                         close(tcp_sock);
                         tcp_sock = tcp_socket();
@@ -138,6 +140,15 @@ int main() {
                 udp_send(udp_sock, &client_addr, query_buffer + 2,
                          tcp_recv_len - 2);
                 close(tcp_sock);
+
+                int num_rr = header->num_answer_rr + header->num_authority_rr + header->num_addition_rr;
+                dns_rr *rr = (dns_rr *)malloc(sizeof(dns_rr));
+                length = udp_recv_len;
+                for (int i = 0; i < num_rr; i++) {
+                    length += parse_rr(rr, buffer + 2 + length);
+                    save_rr(*rr, "./data/cache.txt");
+                }
+                printf(" > Success to add %d new cache record(s).\n", num_rr);
                 printf("****************************************\n");
                 break;
             }

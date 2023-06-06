@@ -17,5 +17,6 @@ int find_ns_by_query(dns_rr records[], int count, dns_query *query);
 int find_a_by_domain(dns_rr records[], int count, const char domain[]);
 int find_rr(dns_rr records[], int count, const char domain[], uint16_t type);
 void free_records(dns_rr records[], int count);
+void save_rr(dns_rr rr, const char path[]);
 
 #endif

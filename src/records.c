@@ -1,6 +1,8 @@
 #include "records.h"
+#include "data.h"
 #include "dns.h"
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -67,4 +69,26 @@ void free_records(dns_rr records[], int count) {
         free(records[i].data);
     }
     free(records);
+}
+
+void save_rr(dns_rr rr, const char path[]) {
+    FILE *f = fopen(path, "a");
+    if (f == NULL)
+        exit(EXIT_FAILURE);
+    fseek(f, 0, SEEK_END);
+
+    fprintf(f, "%s %u ", rr.domain, rr.ttl);
+    if (rr.class == IN)
+        fprintf(f, "IN ");
+    if (rr.type == A)
+        fprintf(f, "A ");
+    else if (rr.type == CNAME)
+        fprintf(f, "CNAME ");
+    else if (rr.type == MX)
+        fprintf(f, "MX ");
+    else if (rr.type == PTR)
+        fprintf(f, "PTR ");
+    fprintf(f, "%s\n", rr.data);
+
+    fclose(f);
 }
