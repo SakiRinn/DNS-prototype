@@ -52,7 +52,7 @@ int main() {
         set_socket_reuse(tcp_sock);
         server_bind(tcp_sock, &send_addr);
         tcp_connect(tcp_sock, &root_server_addr);
-        printf(" > Trace to %s\n", ROOT_SERVER_IP);
+        printf(" > Trace to \t%s\n", ROOT_SERVER_IP);
         tcp_send(tcp_sock, query_buffer, udp_recv_len + 2);
 
         dns_rr *records;
