@@ -73,12 +73,12 @@ void tcp_send(int client_sock, char *buffer, size_t buffer_len) {
 }
 
 ssize_t tcp_receive(int client_sock, char *buffer) {
-    ssize_t rlen = recv(client_sock, buffer, BUFSIZE, 0);
-    if (rlen == -1) {
+    ssize_t receive_len = recv(client_sock, buffer, BUFSIZE, 0);
+    if (receive_len == -1) {
         perror("receive failed");
         exit(EXIT_FAILURE);
-    } else if (rlen == 0) {
+    } else if (receive_len == 0) {
         printf("client disconnected\n");
     }
-    return rlen;
+    return receive_len;
 }

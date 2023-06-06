@@ -11,10 +11,12 @@
 #define LISTEN_BACKLOG 20
 
 void server_bind(int sock, struct sockaddr_in *addr);
+
 int udp_socket();
 void udp_send(int sock, struct sockaddr_in *dest_addr, char *buffer,
               size_t buffer_len);
 void udp_receive(int sock, struct sockaddr_in *client_addr, char *buffer);
+
 int tcp_socket();
 void tcp_connect(int sock, struct sockaddr_in *addr);
 void tcp_listen(int sock);

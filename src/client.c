@@ -3,20 +3,6 @@
 #include <netinet/in.h>
 #include <stdlib.h>
 
-int gen_client_query_packet(char *packet, struct DNS_Header *header,
-                            struct DNS_Query *query) {
-    memcpy(packet, header, sizeof(struct DNS_Header));
-    int name_len = get_rname_length(query->name);
-    int offset = sizeof(struct DNS_Header);
-    memcpy(packet + offset, query->name, name_len);
-    offset += name_len;
-    memcpy(packet + offset, &query->qtype, sizeof(query->qtype));
-    offset += sizeof(query->qtype);
-    memcpy(packet + offset, &query->qclass, sizeof(query->qclass));
-    offset += sizeof(query->qclass);
-    return offset;
-}
-
 void parse_dns_response(unsigned char *packet, struct DNS_RR *rr) {
     int i = 0, j = 0;
     int name_len = 0;
@@ -54,12 +40,12 @@ void parse_dns_response(unsigned char *packet, struct DNS_RR *rr) {
         i += sizeof(rr->length);
 
         if (rr->type == A) {
-            rr->rdata = malloc(16);
-            parse_addr(rr->rdata, packet + i);
+            rr->data = malloc(16);
+            addr_to_string(rr->data, packet + i);
         }else if (rr->type == PTR){
             int len = get_rname_length(packet+i);
-            rr->rdata = malloc(len-1);
-            parse_name(packet+i, rr->rdata);
+            rr->data = malloc(len-1);
+            parse_name(packet+i, rr->data);
         }
         i += rr->length;
     }

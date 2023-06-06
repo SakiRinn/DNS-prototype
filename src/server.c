@@ -70,8 +70,8 @@ void get_third_name(char *rname, char *name) {
 
 int parse_rr(char *packet, struct DNS_RR *rr) {
     int len = get_rname_length(packet);
-    rr->name = malloc(len);
-    memcpy(rr->name, packet, len);
+    rr->domain = malloc(len);
+    memcpy(rr->domain, packet, len);
     int offset = len;
     memcpy(&rr->type, packet + offset, sizeof(rr->type));
     offset += sizeof(rr->type);
@@ -239,14 +239,14 @@ void add_local_cache(char *packet, int ans_num) {
         char rtype[6] = {0};
         get_type_name(ntohs(rr->type), rtype);
         if (ntohs(rr->type) == PTR) {
-            parse_ptr(rr->name, name);
+            parse_ptr(rr->domain, name);
             parse_name(rr->rdata, rdata);
         }
 
         else {
-            parse_name(rr->name, name);
+            parse_name(rr->domain, name);
             if (ntohs(rr->type) == A)
-                parse_addr(rdata, rr->rdata);
+                addr_to_text(rdata, rr->rdata);
             else
                 parse_name(rr->rdata, rdata);
         }

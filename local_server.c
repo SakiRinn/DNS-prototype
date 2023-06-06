@@ -10,13 +10,13 @@
 
 int main() {
     struct sockaddr_in client_addr;
-    init_addr(&client_addr, CLIENT_IP);
+    init_server_addr(&client_addr, CLIENT_IP);
     struct sockaddr_in recv_addr;
-    init_addr(&recv_addr, LOCAL_SERVER_IP);
+    init_server_addr(&recv_addr, LOCAL_SERVER_IP);
     struct sockaddr_in send_addr;
     init_sender_addr(&send_addr, LOCAL_SERVER_IP);
     struct sockaddr_in root_server_addr;
-    init_addr(&root_server_addr, ROOT_SERVER_IP);
+    init_server_addr(&root_server_addr, ROOT_SERVER_IP);
 
     int sock = udp_socket();
     int tcp_sock;
@@ -81,9 +81,9 @@ int main() {
                 tcp_sock = tcp_socket();
                 server_bind(tcp_sock, &send_addr);
                 char ns_addr[16] = {0};
-                parse_addr(ns_addr, rr->rdata);
+                addr_to_text(ns_addr, rr->data);
                 struct sockaddr_in ns = {0};
-                init_addr(&ns, ns_addr);
+                init_server_addr(&ns, ns_addr);
                 tcp_connect(tcp_sock, &ns);
                 tcp_send(tcp_sock, query_packet, query_len + 2);
                 free_rr(rr);

@@ -1,5 +1,5 @@
-#ifndef SERVER_H_
-#define SERVER_H_
+#ifndef SERVER_H
+#define SERVER_H
 
 #include "dns.h"
 
@@ -22,5 +22,6 @@ void add_local_cache(char *packet, int ans_num);
 int load_data(char *packet, struct DNS_Query *query, short *offset,
               const char *file);
 void gen_udp_packet(char *packet, int len);
+
 
 #endif

@@ -1,9 +1,9 @@
-#include "root.h"
 #include "client.h"
+#include "data.h"
 #include "dns.h"
 #include "server.h"
 #include "socket.h"
-#include "cnus.h"
+#include <string.h>
 
 int main() {
     char qname[127] = {0};
@@ -12,11 +12,11 @@ int main() {
     char packetIn[BUFSIZE] = {0};
 
     struct sockaddr_in client_addr;
-    struct sockaddr_in tld2_addr;
-    init_addr(&tld2_addr, TLD2_SERVER_IP);
+    struct sockaddr_in root_addr;
+    init_receiver_addr(&root_addr, ROOT_SERVER_IP);
 
     int sock = tcp_socket();
-    server_bind(sock, &tld2_addr);
+    server_bind(sock, &root_addr);
     tcp_listen(sock);
 
     struct DNS_Header *header =
@@ -26,38 +26,42 @@ int main() {
 
     while (1) {
         int client_sock = tcp_accept(sock, &client_addr);
-        unsigned char buffer[BUFSIZE] = {0};
+        uint8_t buffer[BUFSIZE] = {0};
 
-        ssize_t rlen = 0;
-        while (rlen = tcp_receive(client_sock, buffer)) {
-            int header_len = deserialize_header(buffer + 2, header);
-            deserialize_query(buffer + 2 + header_len, query);
+        ssize_t receive_len = 0;
+        while (receive_len = tcp_receive(client_sock, buffer)) {
+            int header_len = parse_header(buffer + 2, header);
+            parse_query(buffer + 2 + header_len, query);
 
             memset(buffer, 0, BUFSIZE);
-            struct DNS_RR *RRs;
-            int cnt = get_cnus_data(&RRs);
+            struct DNS_RR *records;
+            int cnt = get_records(&records, "./data/cnus.txt");
             unsigned short length = 0;
 
-            int ns_idx = find_ns(RRs, cnt, query);
+            int ns_idx = find_ns(records, cnt, query);
             if (ns_idx != -1) {
-                init_header(header, header->id, 0x0000, header->queryNum, 0, 1,
+                init_header(header, header->id, 0x0000, header->num_query, 0, 1,
                             1);
-                int a_idx =
-                    find_a_corresponding_ns(RRs, cnt, RRs[ns_idx].rdata);
+                hton_header(header);
+                int a_idx = find_a_for_ns(records, cnt, records[ns_idx].data);
                 if (a_idx == -1) {
                     perror("Database error!");
                     exit(EXIT_FAILURE);
                 }
-                header->flags = htons(gen_flags(1, OP_STD, 1, R_FINE));
-                length += gen_response(buffer + 2, header, query);
-                length += add_new_rr(buffer + 2 + length, RRs + ns_idx);
-                length += add_new_a_rr(buffer + 2 + length, RRs + a_idx);
+                header->flags = htons(generate_flags(1, OP_STD, 1, R_FINE));
+                length += add_header(buffer + 2, header);
+                length += add_query(buffer + 2 + length, query);
+                length += add_domain_rr(buffer + 2 + length, records + ns_idx);
+                length += add_ip_rr(buffer + 2 + length, records + a_idx);
                 *((unsigned short *)buffer) = htons(length);
             } else {
-                init_header(header, header->id, 0x0000, header->queryNum, 0, 0,
+                init_header(header, header->id, 0x0000, header->num_query, 0, 0,
                             0);
-                header->flags = htons(gen_flags(1, OP_STD, 1, R_NAME_ERROR));
-                length += gen_response(buffer + 2, header, query);
+                hton_header(header);
+                header->flags =
+                    htons(generate_flags(1, OP_STD, 1, R_NAME_ERROR));
+                length += add_header(buffer + 2, header);
+                length += add_query(buffer + 2 + length, query);
                 *((unsigned short *)buffer) = htons(length);
             }
             tcp_send(client_sock, buffer, length + 2);
