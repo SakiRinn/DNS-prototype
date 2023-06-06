@@ -7,8 +7,8 @@
 #define CLIENT_IP "127.0.0.1"
 #define LOCAL_SERVER_IP "127.0.0.2"
 #define ROOT_SERVER_IP "127.0.1.1"
-#define TLD1_SERVER_IP "127.1.1.1"
-#define TLD2_SERVER_IP "127.1.1.2"
+#define COMORG_SERVER_IP "127.1.1.1"
+#define CNUS_SERVER_IP "127.1.1.2"
 #define SCD1_SERVER_IP "127.1.2.1"
 #define SCD2_SERVER_IP "127.1.2.2"
 

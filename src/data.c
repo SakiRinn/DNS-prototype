@@ -14,7 +14,7 @@ void init_header(dns_header *header, uint16_t id, uint16_t flags,
     header->num_query = num_query;
     header->num_answer_rr = num_answer_rr;
     header->num_authority_rr = num_authority_rr;
-    header->num_authority_rr = num_addition_rr;
+    header->num_addition_rr = num_addition_rr;
 }
 
 int parse_header(dns_header *header, uint8_t buffer[]) {

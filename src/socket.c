@@ -6,6 +6,16 @@ void server_bind(int sock, struct sockaddr_in *addr) {
     }
 }
 
+void set_socket_reuse(int sock) {
+    int val = 1;
+    int ret =
+        setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (void *)&val, sizeof(int));
+    if (ret == -1) {
+        printf("setsockopt");
+        exit(1);
+    }
+}
+
 int udp_socket() {
     int sock = socket(PF_INET, SOCK_DGRAM, 0);
     if (sock < 0) {
@@ -25,7 +35,8 @@ void udp_send(int sock, struct sockaddr_in *dest_addr, char *buffer,
 
 ssize_t udp_receive(int sock, struct sockaddr_in *client_addr, char *buffer) {
     socklen_t client_addr_len = sizeof(struct sockaddr_in);
-    ssize_t receive_len = recvfrom(sock, buffer, BUFSIZE, 0, (struct sockaddr *)client_addr,
+    ssize_t receive_len =
+        recvfrom(sock, buffer, BUFSIZE, 0, (struct sockaddr *)client_addr,
                  &client_addr_len);
     if (receive_len == -1) {
         perror("UDP receive failed!");

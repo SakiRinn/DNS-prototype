@@ -23,6 +23,7 @@ int main() {
     init_receiver_addr(&root_server_addr, ROOT_SERVER_IP);
 
     int udp_sock = udp_socket();
+    set_socket_reuse(udp_sock);
     server_bind(udp_sock, &receive_addr);
 
     unsigned char buffer[BUFSIZE] = {0};
@@ -36,15 +37,16 @@ int main() {
         dns_query *query = (dns_query *)malloc(sizeof(dns_query));
 
         int udp_recv_len = udp_receive(udp_sock, &client_addr, query_buffer);
-        uint16_t length = parse_header(header, buffer);
-        parse_query(query, buffer + length);
+        uint16_t length = parse_header(header, query_buffer);
+        parse_query(query, query_buffer + length);
 
         memcpy(buffer, query_buffer, BUFSIZE);
         memset(query_buffer, 0, BUFSIZE);
-        memcpy(query_buffer, buffer + 2, udp_recv_len);
+        memcpy(query_buffer + 2, buffer, udp_recv_len);
         *((uint16_t *)query_buffer) = htons(udp_recv_len);
 
         int tcp_sock = tcp_socket();
+        set_socket_reuse(tcp_sock);
         server_bind(tcp_sock, &send_addr);
         tcp_connect(tcp_sock, &root_server_addr);
         tcp_send(tcp_sock, query_buffer, udp_recv_len + 2);
@@ -61,10 +63,11 @@ int main() {
                          udp_recv_len);
                 break;
             } else if (header->num_answer_rr == 0) {
+
                 int count = header->num_authority_rr + header->num_addition_rr;
                 dns_rr *records = (dns_rr *)malloc(count * sizeof(dns_rr));
                 for (int i = 0; i < count; i++)
-                    length += parse_rr(records, buffer + 2 + length);
+                    length += parse_rr(records + i, buffer + 2 + length);
 
                 if (records[0].type == NS) {
                     int a_idx =
@@ -75,8 +78,14 @@ int main() {
                     } else {
                         struct sockaddr_in forward_addr;
                         init_receiver_addr(&forward_addr, records[a_idx].data);
+
+                        tcp_sock = tcp_socket();
+                        set_socket_reuse(tcp_sock);
+                        server_bind(tcp_sock, &send_addr);
                         tcp_connect(tcp_sock, &forward_addr);
                         tcp_send(tcp_sock, query_buffer, udp_recv_len + 2);
+                        close(tcp_sock);
+
                         for (int i = 0; i < count; i++)
                             free_rr(records + i);
                     }

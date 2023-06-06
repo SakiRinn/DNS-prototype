@@ -11,6 +11,7 @@
 #define LISTEN_BACKLOG 20
 
 void server_bind(int sock, struct sockaddr_in *addr);
+void set_socket_reuse(int sock);
 
 int udp_socket();
 void udp_send(int sock, struct sockaddr_in *dest_addr, char *buffer,
