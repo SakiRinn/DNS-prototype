@@ -66,7 +66,7 @@ int main() {
                 length += add_header(buffer + 2, header);
                 length += add_query(buffer + 2 + length, query);
                 *((uint16_t *)buffer) = htons(length);
-                printf(" > [NO NS] Fail to match the domain!\n");
+                printf(" [NO NS] Fail to match the domain!\n");
                 printf("****************************************\n");
             }
             free(header);

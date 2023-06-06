@@ -1,6 +1,2 @@
-www.baidu.com 86100 IN A 123.4.5.6
-baidu.com 86100 IN MX mail.baidu.com
-mail.baidu.com 86100 IN A 123.4.5.7
 123.4.5.6 86100 IN PTR www.baidu.com
-beiyou.edu.cn 86100 IN CNAME bupt.edu.cn
-bupt.edu.cn 86100 IN A 134.5.6.7
+wlh.microsoft.com 86400 IN A 192.168.3.1

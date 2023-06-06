@@ -15,11 +15,11 @@ int main(int argc, char *argv[]) {
     init_receiver_addr(&local_server_addr, LOCAL_SERVER_IP);
 
     if (argc == 1 || (argc == 2 && !strcmp(argv[1], "-h"))) {
-        printf("Usage: ./client domain type\n");
+        printf("Usage: ./client <domain> <type>\n");
         exit(1);
     }
     if (argc != 3) {
-        printf("Wrong argument number!\n");
+        printf("Invalid input!\n");
         exit(1);
     }
     char *domain = argv[1];
@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
         printf(" > Result:\t %s\n", rr->data);
     }
 
-    printf(" > Total time:\t %.2fus\n", us);
+    printf(" > Total time:\t %.2f us\n", us);
     printf("****************************************\n");
 
     free(header);

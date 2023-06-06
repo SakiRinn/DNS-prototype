@@ -52,12 +52,12 @@ int main() {
         set_socket_reuse(tcp_sock);
         server_bind(tcp_sock, &send_addr);
         tcp_connect(tcp_sock, &root_server_addr);
-        printf(" > Trace to \t%s\n", ROOT_SERVER_IP);
+        printf(" > Trace to \troot (%s)\n", ROOT_SERVER_IP);
         tcp_send(tcp_sock, query_buffer, udp_recv_len + 2);
 
-        dns_rr *records;
-        int count = load_records(&records, "./data/cache.txt");
-        int idx = find_rr(records, count, query->domain, query->type);
+        dns_rr *caches;
+        int cache_count = load_records(&caches, "./data/cache.txt");
+        int idx = find_rr(caches, cache_count, query->domain, query->type);
         if (idx != -1) {
             length = udp_recv_len;
             init_header(header, header->id,
@@ -67,24 +67,25 @@ int main() {
 
             int a_idx = 0;
             if (query->type == A)
-                length += add_ip_rr(buffer + 2 + length, records + idx);
+                length += add_ip_rr(query_buffer + 2 + length, caches + idx);
             else if (query->type == MX) {
-                length += add_domain_rr(buffer + 2 + length, records + idx);
-                a_idx = find_a_by_domain(records, count, records[idx].data);
+                length += add_domain_rr(query_buffer + 2 + length, caches + idx);
+                a_idx = find_a_by_domain(caches, cache_count, caches[idx].data);
                 if (a_idx == -1) {
                     perror("Cache error");
                     exit(EXIT_FAILURE);
                 }
-                length += add_ip_rr(buffer + 2 + length, records + a_idx);
+                length += add_ip_rr(query_buffer + 2 + length, caches + a_idx);
             } else
-                length += add_domain_rr(buffer + 2 + length, records + idx);
+                length += add_domain_rr(query_buffer + 2 + length, caches + idx);
             udp_send(udp_sock, &client_addr, query_buffer + 2, length);
 
-            printf(" > Result: \t%s\n", records[idx].data);
+            printf(" > Result: \t%s\n", caches[idx].data);
             if (query->type == MX)
-                printf(" > MX IP: \t%s\n", records[a_idx].data);
-            printf(" > Load from cache!\n");
+                printf(" > MX IP: \t%s\n", caches[a_idx].data);
+            printf(" Load from cache!\n");
             printf("****************************************\n");
+            continue;
         }
 
         while (1) {
@@ -101,6 +102,9 @@ int main() {
                 udp_send(udp_sock, &client_addr, query_buffer + 2,
                          udp_recv_len);
                 close(tcp_sock);
+
+                printf(" [NO Result] Fail to match the domain!\n");
+                printf("****************************************\n");
                 break;
             } else if (header->num_answer_rr == 0) {
 
@@ -117,8 +121,8 @@ int main() {
                         break;
                     } else {
                         struct sockaddr_in forward_addr;
-                        init_receiver_addr(&forward_addr, records[a_idx].data);
-                        printf(" > Trace to %s\n", records[a_idx].data);
+                        init_receiver_addr(&forward_addr, records[0].data);
+                        printf(" > Trace to \t%s (%s)\n", records[0].data, records[a_idx].data);
 
                         close(tcp_sock);
                         tcp_sock = tcp_socket();
@@ -148,7 +152,7 @@ int main() {
                     length += parse_rr(rr, buffer + 2 + length);
                     save_rr(*rr, "./data/cache.txt");
                 }
-                printf(" > Success to add %d new cache record(s).\n", num_rr);
+                printf(" Success to add %d new cache record(s).\n", num_rr);
                 printf("****************************************\n");
                 break;
             }
