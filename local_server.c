@@ -56,11 +56,11 @@ int main() {
             int tcp_recv_len = tcp_receive(tcp_sock, buffer);
             length = parse_header(header, buffer + 2);
             length += parse_query(query, buffer + 2 + length);
-            close(tcp_sock);
 
-            if (header->flags % 0xF == R_NAME_ERROR) {
+            if ((header->flags & 0xF) == R_NAME_ERROR) {
                 udp_send(udp_sock, &client_addr, query_buffer + 2,
                          udp_recv_len);
+                close(tcp_sock);
                 break;
             } else if (header->num_answer_rr == 0) {
 
@@ -73,36 +73,39 @@ int main() {
                     int a_idx =
                         find_a_by_domain(records, count, records[0].data);
                     if (a_idx == -1) {
-                        perror("NS forward error!");
+                        perror("NS forward error");
                         break;
                     } else {
                         struct sockaddr_in forward_addr;
                         init_receiver_addr(&forward_addr, records[a_idx].data);
 
+                        close(tcp_sock);
                         tcp_sock = tcp_socket();
                         set_socket_reuse(tcp_sock);
                         server_bind(tcp_sock, &send_addr);
                         tcp_connect(tcp_sock, &forward_addr);
                         tcp_send(tcp_sock, query_buffer, udp_recv_len + 2);
-                        close(tcp_sock);
 
-                        for (int i = 0; i < count; i++)
-                            free_rr(records + i);
+                        free_records(records, count);
                     }
                 } else {
-                    perror("No answer error!");
+                    perror("No answer error");
+                    close(tcp_sock);
                     break;
                 }
             } else {
+                header->flags = generate_flags(
+                    QR_RESPONSE, query->type == PTR ? OP_INV : OP_STD, 0,
+                    R_NAME_ERROR);
                 add_header(query_buffer + 2, header);
                 memcpy(query_buffer + 2 + udp_recv_len, buffer + 2 + length,
                        tcp_recv_len - 2 - length);
                 udp_send(udp_sock, &client_addr, query_buffer + 2,
                          tcp_recv_len - 2);
+                close(tcp_sock);
                 break;
             }
         }
     }
-
     close(udp_sock);
 }

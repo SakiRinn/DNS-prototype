@@ -49,25 +49,25 @@ int main(int argc, char *argv[]) {
     udp_receive(sock, &client_addr, buffer);
 
     clock_gettime(CLOCK_MONOTONIC, &end_time);
-    double ms = (end_time.tv_sec - start_time.tv_sec) * 1e3 +
-                (end_time.tv_nsec - start_time.tv_nsec) / 1e6;
+    double us = (end_time.tv_sec - start_time.tv_sec) +
+                (end_time.tv_nsec - start_time.tv_nsec) / 1e3;
 
     length = 0;
     length += parse_header(header, buffer);
     length += parse_query(query, buffer + length);
 
-    printf("********** DNS Response **********\n");
+    printf("\n************* DNS Response *************\n");
     dns_rr *rr = (dns_rr *)malloc(sizeof(dns_rr));
 
-    if (header->flags % 0xF == R_NAME_ERROR) {
-        printf("* Not found!\n");
+    if ((header->flags & 0xF) == R_NAME_ERROR) {
+        printf(" > Not found!\n");
     } else {
         parse_rr(rr, buffer + length);
-        printf("* Address:\t %s\n", rr->data);
+        printf(" > Result:\t %s\n", rr->data);
     }
 
-    printf("* Total time:\t %.2fms\n", ms);
-    printf("**********************************\n");
+    printf(" > Total time:\t %.2fus\n", us);
+    printf("****************************************\n");
 
     free(header);
     free_query(query);

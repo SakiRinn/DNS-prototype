@@ -1,5 +1,6 @@
 #include "records.h"
 #include "dns.h"
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -50,4 +51,20 @@ int find_a_by_domain(dns_rr records[], int count, const char domain[]) {
             return i;
     }
     return -1;
+}
+
+int find_rr(dns_rr records[], int count, const char domain[], uint16_t type) {
+    for (int i = 0; i < count; i++) {
+        if (records[i].type == type && !strcmp(records[i].domain, domain))
+            return i;
+    }
+    return -1;
+}
+
+void free_records(dns_rr records[], int count) {
+    for (int i = 0; i < count; i++) {
+        free(records[i].domain);
+        free(records[i].data);
+    }
+    free(records);
 }

@@ -33,7 +33,7 @@ int main() {
             memset(buffer, 0, BUFSIZE);
 
             printf("\n********* Receive a new query! *********\n");
-            printf(" > Domain: \t%s\n", query->domain);
+            printf(" > Query: \t%s\n", query->domain);
 
             length = 0;
             int ns_idx = find_ns_by_query(records, count, query);
@@ -44,7 +44,7 @@ int main() {
                 int a_idx =
                     find_a_by_domain(records, count, records[ns_idx].data);
                 if (a_idx == -1) {
-                    perror("Database error!");
+                    perror("Database error");
                     exit(EXIT_FAILURE);
                 }
 
@@ -76,7 +76,6 @@ int main() {
         }
         close(client_sock);
     }
-    for (int i = 0; i < count; i++)
-        free_rr(records + i);
+    free_records(records, count);
     close(sock);
 }
