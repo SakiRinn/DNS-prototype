@@ -1,1 +1,4 @@
 bupt.edu.cn 86400 IN A 123.123.0.1
+beiyou.edu.cn 86400 IN CNAME bupt.edu.cn
+bupt.edu.cn 86400 IN MX mail.bupt.edu.cn
+mail.bupt.edu.cn 86400 IN A 123.234.0.2

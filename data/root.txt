@@ -3,4 +3,4 @@ ietf.org 86400 IN NS ns.com.org
 cn 86400 IN NS ns.cn.us
 us 86400 IN NS ns.cn.us
 ns.com.org 86400 IN A 127.1.1.1
-ns.cn.us 86100 IN A 127.1.1.2
+ns.cn.us 86400 IN A 127.1.1.2

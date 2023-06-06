@@ -50,9 +50,6 @@ void free_query(dns_query *query);
 void init_rr(dns_rr *rr, char domain[], uint16_t type, uint32_t ttl,
              char data[]);
 int parse_rr(dns_rr *rr, uint8_t buffer[]);
-ssize_t get_records(dns_rr *records[], const char path[]);
-int find_ns(dns_rr records[], int count, dns_query *query);
-int find_a_for_ns(dns_rr records[], int count, const char ns_domain[]);
 void hton_rr(dns_rr *rr);
 void ntoh_rr(dns_rr *rr);
 int add_domain_rr(uint8_t buffer[], dns_rr *rr);

@@ -1,6 +1,6 @@
 #include "data.h"
 #include "dns.h"
-#include "server.h"
+#include "records.h"
 #include "socket.h"
 #include <string.h>
 
@@ -14,7 +14,7 @@ int main() {
     tcp_listen(sock);
 
     dns_rr *records;
-    int count = get_records(&records, "./data/root.txt");
+    int count = load_records(&records, "./data/root.txt");
 
     while (1) {
         int client_sock = tcp_accept(sock, &local_server_addr);
@@ -25,17 +25,18 @@ int main() {
             dns_header *header = (dns_header *)malloc(sizeof(dns_header));
             dns_query *query = (dns_query *)malloc(sizeof(dns_query));
 
-            int header_len = parse_header(buffer + 2, header);
-            parse_query(query, buffer + 2 + header_len);
+            uint16_t length = parse_header(buffer + 2, header);
+            parse_query(query, buffer + 2 + length);
             memset(buffer, 0, BUFSIZE);
 
-            unsigned short length = 0;
-            int ns_idx = find_ns(records, count, query);
+            length = 0;
+            int ns_idx = find_ns_by_query(records, count, query);
             if (ns_idx != -1) {
                 init_header(header, header->id,
                             generate_flags(QR_RESPONSE, OP_STD, 1, R_FINE),
                             header->num_query, 0, 1, 1);
-                int a_idx = find_a_for_ns(records, count, records[ns_idx].data);
+                int a_idx =
+                    find_a_by_domain(records, count, records[ns_idx].data);
                 if (a_idx == -1) {
                     perror("Database error!");
                     exit(EXIT_FAILURE);
@@ -45,7 +46,7 @@ int main() {
                 length += add_query(buffer + 2 + length, query);
                 length += add_domain_rr(buffer + 2 + length, records + ns_idx);
                 length += add_ip_rr(buffer + 2 + length, records + a_idx);
-                *((unsigned short *)buffer) = htons(length);
+                *((uint16_t *)buffer) = htons(length);
             } else {
                 init_header(
                     header, header->id,
@@ -54,7 +55,7 @@ int main() {
 
                 length += add_header(buffer + 2, header);
                 length += add_query(buffer + 2 + length, query);
-                *((unsigned short *)buffer) = htons(length);
+                *((uint16_t *)buffer) = htons(length);
             }
             free(header);
             free_query(query);

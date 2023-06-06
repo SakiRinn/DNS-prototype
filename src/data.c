@@ -157,6 +157,12 @@ int parse_rr(dns_rr *rr, uint8_t buffer[]) {
         rr->data = (char *)malloc(strlen(addr_string) + 1);
         strcpy(rr->data, addr_string);
         size += 4;
+    } else if (rr->type == MX) {
+        memset(rdomain, 0, DOMAIN_MAX_LENGTH);
+        strcpy(rdomain, buffer + size + 2);
+        rr->data = (char *)malloc(strlen(rdomain) + 1);
+        parse_domain(rr->data, rdomain);
+        size += strlen(rdomain) + 3;
     } else {
         memset(rdomain, 0, DOMAIN_MAX_LENGTH);
         strcpy(rdomain, buffer + size);
@@ -166,55 +172,6 @@ int parse_rr(dns_rr *rr, uint8_t buffer[]) {
     }
 
     return size;
-}
-
-ssize_t get_records(dns_rr *records[], const char path[]) {
-    FILE *f = fopen(path, "r");
-
-    *records = (dns_rr *)malloc(ARRAY_CAPACITY * sizeof(dns_rr));
-    memset(*records, 0, ARRAY_CAPACITY * sizeof(dns_rr));
-
-    int count = -1;
-    for (count = 0; !feof(f); count++) {
-        dns_rr *rr = *records + count;
-        char class[8] = {0};
-        char type[8] = {0};
-        rr->domain = (char *)malloc(DOMAIN_MAX_LENGTH);
-        rr->data = (char *)malloc(DOMAIN_MAX_LENGTH);
-
-        memset(rr->domain, 0, DOMAIN_MAX_LENGTH);
-        fscanf(f, "%s %d %s %s %s\n", rr->domain, &rr->ttl, class, type,
-               rr->data);
-        rr->domain = (char *)realloc(rr->domain, (strlen(rr->domain) + 1));
-        rr->data = (char *)realloc(rr->data, (strlen(rr->data) + 1));
-        rr->length = strlen(rr->data) + 2;
-        rr->type = get_type(type);
-        rr->class = get_class(class);
-
-        if ((count + 1) % ARRAY_CAPACITY == 0) {
-            *records = (dns_rr *)realloc(*records, (count + ARRAY_CAPACITY) *
-                                                       sizeof(dns_rr));
-            memset(records + count + 1, 0, ARRAY_CAPACITY * sizeof(dns_rr));
-        }
-    }
-    fclose(f);
-    return count;
-}
-
-int find_ns(dns_rr records[], int count, dns_query *query) {
-    for (int i = 0; i < count; i++) {
-        if (records[i].type == NS && strstr(query->domain, records[i].domain))
-            return i;
-    }
-    return -1;
-}
-
-int find_a_for_ns(dns_rr records[], int count, const char ns_domain[]) {
-    for (int i = 0; i < count; i++) {
-        if (records[i].type == A && !strcmp(records[i].domain, ns_domain))
-            return i;
-    }
-    return -1;
 }
 
 void hton_rr(dns_rr *rr) {
@@ -247,6 +204,10 @@ int add_domain_rr(uint8_t buffer[], dns_rr *rr) {
 
     memset(rdomain, 0, DOMAIN_MAX_LENGTH);
     serialize_domain(rdomain, rr->data);
+    if (rr->type == MX) {
+        memset(buffer + size, 0, 2);
+        size += 2;
+    }
     strcpy(buffer + size, rdomain);
     size += strlen(rdomain) + 1;
 

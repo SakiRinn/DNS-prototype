@@ -1,1 +1,4 @@
-bupt.gov.us 86400 IN A 123.124.125.3
+gsc.gov.us 86400 IN A 123.124.125.3
+gsc.gov.us 86400 IN MX mail.gsc.gov.us
+mail.gsc.gov.us 86400 IN A 123.124.125.4
+gsc.gov.us 86400 IN CNAME lzk.gov.us

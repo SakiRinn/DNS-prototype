@@ -5,9 +5,7 @@
 #include <netinet/in.h>
 
 #define DNS_PORT 53
-#define SENDER_PORT 54000
 
-#define NAME_PTR 0xc0
 #define DOMAIN_MAX_LEVEL 16
 #define DOMAIN_MAX_LENGTH 128
 #define ARRAY_CAPACITY 20
@@ -29,7 +27,6 @@
 
 #define IN 1
 
-
 uint16_t generate_random_id();
 uint16_t generate_flags(uint8_t QR, uint8_t opcode, uint8_t AA, uint8_t rcode);
 
@@ -38,7 +35,6 @@ uint32_t addr_to_binary(const char addr_string[]);
 void addr_to_string(char addr_string[], uint32_t addr_binary);
 void init_receiver_addr(struct sockaddr_in *sockaddr, const char addr[]);
 void init_sender_addr(struct sockaddr_in *sockaddr, const char addr[]);
-void serialize_addr(char *addr, char **rdata);
 
 uint16_t get_type(const char type[]);
 uint16_t get_class(const char class[]);
@@ -48,6 +44,5 @@ void serialize_domain(unsigned char rdomain[], const char domain[]);
 
 void parse_ptr(char ip[], const unsigned char rdomain[]);
 void serialize_ptr(unsigned char rdomain[], const char ip[]);
-
 
 #endif

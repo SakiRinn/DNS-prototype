@@ -1,7 +1,11 @@
+#include "data.h"
 #include "dns.h"
-#include "server.h"
+#include "records.h"
 #include "socket.h"
 #include <netinet/in.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include <sys/socket.h>
@@ -11,96 +15,82 @@
 int main() {
     struct sockaddr_in client_addr;
     init_receiver_addr(&client_addr, CLIENT_IP);
-    struct sockaddr_in recv_addr;
-    init_receiver_addr(&recv_addr, LOCAL_SERVER_IP);
+    struct sockaddr_in receive_addr;
+    init_receiver_addr(&receive_addr, LOCAL_SERVER_IP);
     struct sockaddr_in send_addr;
     init_sender_addr(&send_addr, LOCAL_SERVER_IP);
     struct sockaddr_in root_server_addr;
     init_receiver_addr(&root_server_addr, ROOT_SERVER_IP);
 
     int udp_sock = udp_socket();
-    server_bind(udp_sock, &recv_addr);
+    server_bind(udp_sock, &receive_addr);
 
-    char packet[BUFSIZE] = {0};
-    char query_packet[BUFSIZE] = {0};
+    unsigned char buffer[BUFSIZE] = {0};
+    unsigned char query_buffer[BUFSIZE] = {0};
 
     while (1) {
-        memset(packet, 0, BUFSIZE);
-        memset(query_packet, 0, BUFSIZE);
-        udp_receive(udp_sock, &client_addr, query_packet);
+        memset(buffer, 0, BUFSIZE);
+        memset(query_buffer, 0, BUFSIZE);
 
-        memcpy(packet, query_packet, BUFSIZE);
-        struct DNS_Header *header = (struct DNS_Header *)packet;
-        struct DNS_Query *query = malloc(sizeof(struct DNS_Query));
+        dns_header *header = (dns_header *)malloc(sizeof(dns_header));
+        dns_query *query = (dns_query *)malloc(sizeof(dns_query));
 
-        int tcp_sock;
-        short query_len = parse_query_packet(packet, header, query);
-        short offset = query_len;
-        char data[127] = {0};
-        int len = 12;
-        if (load_data(packet, query, &len, "local_server_cache.txt")) {
-            printf("%s", query->name);
-            header = (struct DNS_Header *)packet;
-            header->flags = htons(FLAGS_RESPONSE);
-            // gen_response_packet(packet, header, 1);
+        int udp_recv_len = udp_receive(udp_sock, &client_addr, query_buffer);
+        uint16_t length = parse_header(header, buffer);
+        parse_query(query, buffer + length);
 
-            udp_send(udp_sock, &client_addr, packet, len);
-        } else if (ntohs(query->qtype) == PTR) {
-            header->flags = htons(FLAGS_NOTFOUND);
-            udp_send(udp_sock, &client_addr, packet, offset);
-        } else {
+        memcpy(buffer, query_buffer, BUFSIZE);
+        memset(query_buffer, 0, BUFSIZE);
+        memcpy(query_buffer, buffer + 2, udp_recv_len);
+        *((uint16_t *)query_buffer) = htons(udp_recv_len);
 
-            gen_tcp_packet(query_packet, offset);
-            offset += 2;
-            tcp_sock = tcp_socket();
-            server_bind(tcp_sock, &send_addr);
-            tcp_connect(tcp_sock, &root_server_addr);
-            tcp_send(tcp_sock, query_packet, offset);
+        int tcp_sock = tcp_socket();
+        server_bind(tcp_sock, &send_addr);
+        tcp_connect(tcp_sock, &root_server_addr);
+        tcp_send(tcp_sock, query_buffer, udp_recv_len + 2);
 
-            while (1) {
-                memset(packet, 0, BUFSIZE);
-                offset = query_len + 2;
-                tcp_receive(tcp_sock, packet);
-                header = (struct DNS_Header *)(packet + 2);
-                struct DNS_RR *rr = malloc(sizeof(struct DNS_RR));
-                if (ntohs(header->flags) == FLAGS_NOTFOUND) {
-                    close(tcp_sock);
-                    int len = cal_packet_len(packet + 2);
-                    gen_udp_packet(packet, len);
-                    udp_send(udp_sock, &client_addr, packet, len);
-                    free(rr);
-                    break;
-                }
+        while (1) {
+            memset(buffer, 0, BUFSIZE);
+            int tcp_recv_len = tcp_receive(tcp_sock, buffer);
+            length = parse_header(header, buffer + 2);
+            length += parse_query(query, buffer + 2 + length);
+            close(tcp_sock);
 
-                if (header->answerNum == 0) {
-                    int num = ntohs(header->authorNum) + ntohs(header->addNum);
+            if (header->flags % 0xF == R_NAME_ERROR) {
+                udp_send(udp_sock, &client_addr, query_buffer + 2,
+                         udp_recv_len);
+                break;
+            } else if (header->num_answer_rr == 0) {
+                int count = header->num_authority_rr + header->num_addition_rr;
+                dns_rr *records = (dns_rr *)malloc(count * sizeof(dns_rr));
+                for (int i = 0; i < count; i++)
+                    length += parse_rr(records, buffer + 2 + length);
 
-                    for (int i = 0; i < num; i++) {
-
-                        offset += parse_rr(packet + offset, rr);
+                if (records[0].type == NS) {
+                    int a_idx =
+                        find_a_by_domain(records, count, records[0].data);
+                    if (a_idx == -1) {
+                        perror("NS forward error!");
+                        break;
+                    } else {
+                        struct sockaddr_in forward_addr;
+                        init_receiver_addr(&forward_addr, records[a_idx].data);
+                        tcp_connect(tcp_sock, &forward_addr);
+                        tcp_send(tcp_sock, query_buffer, udp_recv_len + 2);
+                        for (int i = 0; i < count; i++)
+                            free_rr(records + i);
                     }
-                    close(tcp_sock);
-                    tcp_sock = tcp_socket();
-                    server_bind(tcp_sock, &send_addr);
-                    char ns_addr[16] = {0};
-                    parse_addr(ns_addr, rr->rdata);
-                    struct sockaddr_in ns = {0};
-                    init_addr(&ns, ns_addr);
-                    tcp_connect(tcp_sock, &ns);
-                    tcp_send(tcp_sock, query_packet, query_len + 2);
-                    free_rr(rr);
-
                 } else {
-                    close(tcp_sock);
-                    int len = cal_packet_len(packet + 2);
-                    gen_udp_packet(packet, len);
-                    header = (struct DNS_Header *)packet;
-
-                    add_local_cache(packet, query_len);
-                    udp_send(udp_sock, &client_addr, packet, len);
-                    free(rr);
+                    perror("No answer error!");
                     break;
                 }
+            } else {
+                add_header(query_buffer + 2, header);
+                memcpy(query_buffer + 2 + udp_recv_len, buffer + 2 + length,
+                       tcp_recv_len - 2 - length);
+                udp_send(udp_sock, &client_addr, query_buffer + 2,
+                         tcp_recv_len - 2);
+                break;
             }
         }
     }

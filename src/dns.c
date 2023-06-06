@@ -59,10 +59,11 @@ void init_receiver_addr(struct sockaddr_in *sockaddr, const char addr[]) {
 }
 
 void init_sender_addr(struct sockaddr_in *sockaddr, const char addr[]) {
+    uint16_t port = (rand() % (65535 - 40000 + 1)) + 40000;
     memset(sockaddr, 0, sizeof(struct sockaddr_in));
     sockaddr->sin_family = AF_INET;
     sockaddr->sin_addr.s_addr = inet_addr(addr);
-    sockaddr->sin_port = htons(SENDER_PORT);
+    sockaddr->sin_port = htons(port);
 }
 
 uint16_t get_type(const char type[]) {
