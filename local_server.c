@@ -40,6 +40,9 @@ int main() {
         uint16_t length = parse_header(header, query_buffer);
         parse_query(query, query_buffer + length);
 
+        printf("\n********* Receive a new query! *********\n");
+        printf(" > Query: \t%s\n", query->domain);
+
         memcpy(buffer, query_buffer, BUFSIZE);
         memset(query_buffer, 0, BUFSIZE);
         memcpy(query_buffer + 2, buffer, udp_recv_len);
@@ -51,6 +54,38 @@ int main() {
         tcp_connect(tcp_sock, &root_server_addr);
         tcp_send(tcp_sock, query_buffer, udp_recv_len + 2);
 
+        dns_rr *records;
+        int count = load_records(&records, "./data/cache.txt");
+        int idx = find_rr(records, count, query->domain, query->type);
+        if (idx != -1) {
+            length = udp_recv_len;
+            init_header(header, header->id,
+                        generate_flags(QR_RESPONSE, OP_STD, 0, R_FINE),
+                        header->num_query, 1, 0, query->type == MX ? 1 : 0);
+            add_header(query_buffer + 2, header);
+
+            int a_idx = 0;
+            if (query->type == A)
+                length += add_ip_rr(buffer + 2 + length, records + idx);
+            else if (query->type == MX) {
+                length += add_domain_rr(buffer + 2 + length, records + idx);
+                a_idx = find_a_by_domain(records, count, records[idx].data);
+                if (a_idx == -1) {
+                    perror("Cache error");
+                    exit(EXIT_FAILURE);
+                }
+                length += add_ip_rr(buffer + 2 + length, records + a_idx);
+            } else
+                length += add_domain_rr(buffer + 2 + length, records + idx);
+            udp_send(udp_sock, &client_addr, query_buffer + 2, length);
+
+            printf(" > Result: \t%s\n", records[idx].data);
+            if (query->type == MX)
+                printf(" > MX IP: \t%s\n", records[a_idx].data);
+            printf(" > Load from cache!");
+            printf("****************************************\n");
+        }
+
         while (1) {
             memset(buffer, 0, BUFSIZE);
             int tcp_recv_len = tcp_receive(tcp_sock, buffer);
@@ -58,6 +93,10 @@ int main() {
             length += parse_query(query, buffer + 2 + length);
 
             if ((header->flags & 0xF) == R_NAME_ERROR) {
+                header->flags = generate_flags(
+                    QR_RESPONSE, query->type == PTR ? OP_INV : OP_STD, 0,
+                    R_NAME_ERROR);
+                add_header(query_buffer + 2, header);
                 udp_send(udp_sock, &client_addr, query_buffer + 2,
                          udp_recv_len);
                 close(tcp_sock);
@@ -94,15 +133,12 @@ int main() {
                     break;
                 }
             } else {
-                header->flags = generate_flags(
-                    QR_RESPONSE, query->type == PTR ? OP_INV : OP_STD, 0,
-                    R_NAME_ERROR);
-                add_header(query_buffer + 2, header);
                 memcpy(query_buffer + 2 + udp_recv_len, buffer + 2 + length,
                        tcp_recv_len - 2 - length);
                 udp_send(udp_sock, &client_addr, query_buffer + 2,
                          tcp_recv_len - 2);
                 close(tcp_sock);
+                printf("****************************************\n");
                 break;
             }
         }

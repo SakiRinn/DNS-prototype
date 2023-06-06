@@ -43,12 +43,12 @@ int main() {
                 length += add_header(buffer + 2, header);
                 length += add_query(buffer + 2 + length, query);
 
+                int a_idx = 0;
                 if (query->type == A)
                     length += add_ip_rr(buffer + 2 + length, records + idx);
                 else if (query->type == MX) {
                     length += add_domain_rr(buffer + 2 + length, records + idx);
-                    int a_idx =
-                        find_a_by_domain(records, count, records[idx].data);
+                    a_idx = find_a_by_domain(records, count, records[idx].data);
                     if (a_idx == -1) {
                         perror("Database error");
                         exit(EXIT_FAILURE);
@@ -60,6 +60,8 @@ int main() {
                 *((uint16_t *)buffer) = htons(length);
 
                 printf(" > Result: \t%s\n", records[idx].data);
+                if (query->type == MX)
+                    printf(" > MX IP: \t%s\n", records[a_idx].data);
                 printf("****************************************\n");
             } else {
                 init_header(
