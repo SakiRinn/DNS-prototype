@@ -1,5 +1,5 @@
 wlh.microsoft.com 86400 IN A 192.168.3.1
-lxg.microsoft.com 86400 IN CNAME wlh.microsoft.com
+lxg.microsoft.com 86400 IN CNAME lixinge.microsoft.com
 wlh.microsoft.com 86400 IN MX mail.wlh.microsoft.com
 mail.wlh.microsoft.com 86400 IN A 192.168.3.2
 wlh.ietf.org 86400 IN A 192.168.3.3

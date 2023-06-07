@@ -48,7 +48,7 @@ int main() {
                             generate_flags(QR_RESPONSE, OP_INV, 1, R_FINE),
                             header->num_query, 0, 1, 1);
                 dns_rr *rr = (dns_rr *)malloc(sizeof(dns_rr));
-                char *ns_ptr = (char *)malloc(7);
+                char *ns_ptr = (char *)malloc(8);
                 strcpy(ns_ptr, "ns.ptr");
                 char *data = (char *)malloc(10);
                 strcpy(data, "127.1.1.3");

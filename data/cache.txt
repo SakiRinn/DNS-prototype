@@ -1,3 +1,0 @@
-wlh.gov.us 86400 IN A 111.222.111.1
-wlh.gov.us 86400 IN MX mail.wlh.gov.us
-mail.wlh.gov.us 86400 IN A 111.222.111.2

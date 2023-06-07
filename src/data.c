@@ -129,7 +129,7 @@ void init_rr(dns_rr *rr, char domain[], uint16_t type, uint32_t ttl,
     rr->type = type;
     rr->class = IN;
     rr->ttl = ttl;
-    rr->length = strlen(data) + 1;
+    rr->length = strlen(data) + 2;
     rr->data = data;
 }
 
@@ -152,7 +152,7 @@ int parse_rr(dns_rr *rr, uint8_t buffer[]) {
     size += sizeof(uint16_t);
 
     if (rr->type == A) {
-        char addr_string[DOMAIN_MAX_LENGTH];
+        char addr_string[DOMAIN_MAX_LENGTH] = {0};
         addr_to_string(addr_string, *(uint32_t *)(buffer + size));
         rr->data = (char *)malloc(strlen(addr_string) + 1);
         strcpy(rr->data, addr_string);
