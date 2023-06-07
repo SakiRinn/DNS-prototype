@@ -122,7 +122,7 @@ int main() {
                         break;
                     } else {
                         struct sockaddr_in forward_addr;
-                        init_receiver_addr(&forward_addr, records[0].data);
+                        init_receiver_addr(&forward_addr, records[a_idx].data);
                         printf(" > Trace to \t%s (%s)\n", records[0].data, records[a_idx].data);
 
                         close(tcp_sock);
