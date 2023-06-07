@@ -48,13 +48,6 @@ int main() {
         memcpy(query_buffer + 2, buffer, udp_recv_len);
         *((uint16_t *)query_buffer) = htons(udp_recv_len);
 
-        int tcp_sock = tcp_socket();
-        set_socket_reuse(tcp_sock);
-        server_bind(tcp_sock, &send_addr);
-        tcp_connect(tcp_sock, &root_server_addr);
-        printf(" > Trace to \troot (%s)\n", ROOT_SERVER_IP);
-        tcp_send(tcp_sock, query_buffer, udp_recv_len + 2);
-
         dns_rr *caches;
         int cache_count = load_records(&caches, "./data/cache.txt");
         int idx = find_rr(caches, cache_count, query->domain, query->type);
@@ -87,6 +80,14 @@ int main() {
             printf("****************************************\n");
             continue;
         }
+
+        int tcp_sock = tcp_socket();
+        set_socket_reuse(tcp_sock);
+        server_bind(tcp_sock, &send_addr);
+        tcp_connect(tcp_sock, &root_server_addr);
+        tcp_send(tcp_sock, query_buffer, udp_recv_len + 2);
+
+        printf(" > Trace to \troot (%s)\n", ROOT_SERVER_IP);
 
         while (1) {
             memset(buffer, 0, BUFSIZE);

@@ -1,0 +1,2 @@
+123.45.67.89 86400 IN PTR woshi.com
+231.54.76.98 86400 IN PTR shiwo.com

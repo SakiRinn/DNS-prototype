@@ -3,6 +3,7 @@
 #include "records.h"
 #include "socket.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 int main() {
@@ -20,7 +21,6 @@ int main() {
 
     while (1) {
         int client_sock = tcp_accept(sock, &local_server_addr);
-        set_socket_reuse(client_sock);
         unsigned char buffer[BUFSIZE] = {0};
 
         int receive_len = 0;
@@ -34,6 +34,29 @@ int main() {
 
             printf("\n********* Receive a new query! *********\n");
             printf(" > Query: \t%s\n", query->domain);
+
+            if (query->type == PTR) {
+                init_header(header, header->id,
+                            generate_flags(QR_RESPONSE, OP_INV, 1, R_FINE),
+                            header->num_query, 0, 1, 1);
+                dns_rr *rr = (dns_rr *)malloc(sizeof(dns_rr));
+                char *domain = (char *)malloc(7);
+                strcpy(domain, "ns.ptr");
+                char *data = (char *)malloc(10);
+                strcpy(data, "127.1.1.3");
+                init_rr(rr, domain, PTR, 86400, data);
+                int a_idx = find_a_by_domain(records, count, rr->domain);
+
+                length += add_header(buffer + 2, header);
+                length += add_query(buffer + 2 + length, query);
+                length += add_domain_rr(buffer + 2 + length, rr);
+                length += add_ip_rr(buffer + 2 + length, records + a_idx);
+                *((uint16_t *)buffer) = htons(length);
+
+                printf(" > NS Domain: \tns.ptr\n");
+                printf(" > NS IP: \t%s\n", records[a_idx].data);
+                printf("****************************************\n");
+            }
 
             length = 0;
             int ns_idx = find_ns_by_query(records, count, query);
@@ -66,6 +89,7 @@ int main() {
                 length += add_header(buffer + 2, header);
                 length += add_query(buffer + 2 + length, query);
                 *((uint16_t *)buffer) = htons(length);
+
                 printf(" [NO NS] Fail to match the domain!\n");
                 printf("****************************************\n");
             }

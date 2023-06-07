@@ -2,24 +2,24 @@
 #include "dns.h"
 #include "records.h"
 #include "socket.h"
-#include <stdio.h>
 #include <string.h>
 
 int main() {
     struct sockaddr_in local_server_addr;
-    struct sockaddr_in cnus_addr;
-    init_receiver_addr(&cnus_addr, CNUS_SERVER_IP);
+    struct sockaddr_in edu_addr;
+    init_receiver_addr(&edu_addr, EDU_SERVER_IP);
 
     int sock = tcp_socket();
     set_socket_reuse(sock);
-    server_bind(sock, &cnus_addr);
+    server_bind(sock, &edu_addr);
     tcp_listen(sock);
 
     dns_rr *records;
-    int count = load_records(&records, "./data/cnus.txt");
+    int count = load_records(&records, "./data/edu.txt");
 
     while (1) {
         int client_sock = tcp_accept(sock, &local_server_addr);
+        set_socket_reuse(client_sock);
         unsigned char buffer[BUFSIZE] = {0};
 
         int receive_len = 0;
@@ -35,38 +35,43 @@ int main() {
             printf(" > Query: \t%s\n", query->domain);
 
             length = 0;
-            int ns_idx = find_ns_by_query(records, count, query);
-            if (ns_idx != -1) {
+            int idx = find_rr(records, count, query->domain, query->type);
+            if (idx != -1) {
                 init_header(header, header->id,
-                            generate_flags(QR_RESPONSE, OP_STD, 1, R_FINE),
-                            header->num_query, 0, 1, 1);
-                int a_idx =
-                    find_a_by_domain(records, count, records[ns_idx].data);
-                if (a_idx == -1) {
-                    perror("Database error");
-                    exit(EXIT_FAILURE);
-                }
-
+                            generate_flags(QR_RESPONSE, OP_STD, 0, R_FINE),
+                            header->num_query, 1, 0, query->type == MX ? 1 : 0);
                 length += add_header(buffer + 2, header);
                 length += add_query(buffer + 2 + length, query);
-                length += add_domain_rr(buffer + 2 + length, records + ns_idx);
-                length += add_ip_rr(buffer + 2 + length, records + a_idx);
+
+                int a_idx = 0;
+                if (query->type == A)
+                    length += add_ip_rr(buffer + 2 + length, records + idx);
+                else if (query->type == MX) {
+                    length += add_domain_rr(buffer + 2 + length, records + idx);
+                    a_idx = find_a_by_domain(records, count, records[idx].data);
+                    if (a_idx == -1) {
+                        perror("Database error");
+                        exit(EXIT_FAILURE);
+                    }
+                    length += add_ip_rr(buffer + 2 + length, records + a_idx);
+                } else
+                    length += add_domain_rr(buffer + 2 + length, records + idx);
+
                 *((uint16_t *)buffer) = htons(length);
 
-                printf(" > NS Domain: \t%s\n", records[ns_idx].data);
-                printf(" > NS IP: \t%s\n", records[a_idx].data);
+                printf(" > Result: \t%s\n", records[idx].data);
+                if (query->type == MX)
+                    printf(" > MX IP: \t%s\n", records[a_idx].data);
                 printf("****************************************\n");
             } else {
                 init_header(
                     header, header->id,
-                    generate_flags(QR_RESPONSE, OP_STD, 1, R_NAME_ERROR),
+                    generate_flags(QR_RESPONSE, OP_STD, 0, R_NAME_ERROR),
                     header->num_query, 0, 0, 0);
-
                 length += add_header(buffer + 2, header);
                 length += add_query(buffer + 2 + length, query);
                 *((uint16_t *)buffer) = htons(length);
-
-                printf(" [NO NS] Fail to match the domain!\n");
+                printf(" [NO Result] Fail to match the domain!\n");
                 printf("****************************************\n");
             }
             free(header);
