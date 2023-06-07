@@ -62,7 +62,8 @@ int main() {
             if (query->type == A)
                 length += add_ip_rr(query_buffer + 2 + length, caches + idx);
             else if (query->type == MX) {
-                length += add_domain_rr(query_buffer + 2 + length, caches + idx);
+                length +=
+                    add_domain_rr(query_buffer + 2 + length, caches + idx);
                 a_idx = find_a_by_domain(caches, cache_count, caches[idx].data);
                 if (a_idx == -1) {
                     perror("Cache error");
@@ -70,7 +71,8 @@ int main() {
                 }
                 length += add_ip_rr(query_buffer + 2 + length, caches + a_idx);
             } else
-                length += add_domain_rr(query_buffer + 2 + length, caches + idx);
+                length +=
+                    add_domain_rr(query_buffer + 2 + length, caches + idx);
             udp_send(udp_sock, &client_addr, query_buffer + 2, length);
 
             printf(" > Result: \t%s\n", caches[idx].data);
@@ -123,7 +125,8 @@ int main() {
                     } else {
                         struct sockaddr_in forward_addr;
                         init_receiver_addr(&forward_addr, records[a_idx].data);
-                        printf(" > Trace to \t%s (%s)\n", records[0].data, records[a_idx].data);
+                        printf(" > Trace to \t%s (%s)\n", records[0].data,
+                               records[a_idx].data);
 
                         close(tcp_sock);
                         tcp_sock = tcp_socket();
@@ -142,16 +145,22 @@ int main() {
             } else {
                 memcpy(query_buffer + 2 + udp_recv_len, buffer + 2 + length,
                        tcp_recv_len - 2 - length);
+                init_header(header, header->id,
+                            generate_flags(QR_RESPONSE, OP_STD, 0, R_FINE),
+                            header->num_query, 1, 0, query->type == MX ? 1 : 0);
+                add_header(query_buffer + 2, header);
                 udp_send(udp_sock, &client_addr, query_buffer + 2,
                          tcp_recv_len - 2);
                 close(tcp_sock);
 
-                int num_rr = header->num_answer_rr + header->num_authority_rr + header->num_addition_rr;
+                int num_rr = header->num_answer_rr + header->num_authority_rr +
+                             header->num_addition_rr;
                 dns_rr *rr = (dns_rr *)malloc(sizeof(dns_rr));
                 length = udp_recv_len;
                 for (int i = 0; i < num_rr; i++) {
                     length += parse_rr(rr, buffer + 2 + length);
-                    save_rr(*rr, "./data/cache.txt");
+                    if (rr->type != PTR)
+                        save_rr(*rr, "./data/cache.txt");
                 }
                 printf(" Success to add %d new cache record(s).\n", num_rr);
                 printf("****************************************\n");

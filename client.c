@@ -35,12 +35,6 @@ int main(int argc, char *argv[]) {
         init_header(header, generate_random_id(),
                     generate_flags(QR_REQURST, OP_INV, 0, R_FINE), 1, 0, 0, 0);
     init_query(query, domain, get_type(type));
-    if (get_type(type) == PTR) {
-        char rdomain[DOMAIN_MAX_LENGTH] = {0};
-        serialize_ptr(rdomain, query->domain);
-        query->domain = malloc(strlen(rdomain) + 1);
-        strcpy(query->domain, rdomain);
-    }
 
     uint16_t length = 0;
     length += add_header(buffer, header);

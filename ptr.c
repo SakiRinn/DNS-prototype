@@ -35,12 +35,13 @@ int main() {
             printf("\n********* Receive a new query! *********\n");
             printf(" > Query: \t%s\n", query->domain);
 
-            char ip[DOMAIN_MAX_LENGTH] = {0};
-            char *rdomain = query->domain;
-            parse_ptr(ip, query->domain);
+            char ip[DOMAIN_MAX_LENGTH] = {0}, rdomain[DOMAIN_MAX_LENGTH] = {0};
+            char *origin = query->domain;
+            serialize_domain(rdomain, origin);
+            parse_ptr(ip, rdomain);
             query->domain = malloc(strlen(ip) + 1);
             strcpy(query->domain, ip);
-            free(rdomain);
+            free(origin);
 
             length = 0;
             int idx = find_rr(records, count, query->domain, query->type);

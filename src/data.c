@@ -74,7 +74,7 @@ void init_query(dns_query *query, char domain[], uint16_t type) {
 int parse_query(dns_query *query, uint8_t buffer[]) {
     int size = 0;
 
-    unsigned char *rdomain[DOMAIN_MAX_LENGTH] = {0};
+    unsigned char rdomain[DOMAIN_MAX_LENGTH] = {0};
     strcpy(rdomain, buffer);
     query->domain = (uint8_t *)malloc(strlen(rdomain) + 1);
     parse_domain(query->domain, rdomain);
@@ -101,7 +101,7 @@ void ntoh_query(dns_query *query) {
 int add_query(uint8_t buffer[], dns_query *query) {
     int size = 0;
 
-    unsigned char *rdomain[DOMAIN_MAX_LENGTH] = {0};
+    unsigned char rdomain[DOMAIN_MAX_LENGTH] = {0};
     if (query->type == PTR)
         serialize_ptr(rdomain, query->domain);
     else
@@ -136,7 +136,7 @@ void init_rr(dns_rr *rr, char domain[], uint16_t type, uint32_t ttl,
 int parse_rr(dns_rr *rr, uint8_t buffer[]) {
     int size = 0;
 
-    unsigned char *rdomain[DOMAIN_MAX_LENGTH] = {0};
+    unsigned char rdomain[DOMAIN_MAX_LENGTH] = {0};
     strcpy(rdomain, buffer);
     rr->domain = (char *)malloc(strlen(rdomain) + 1);
     parse_domain(rr->domain, rdomain);
@@ -191,7 +191,7 @@ void ntoh_rr(dns_rr *rr) {
 int add_domain_rr(uint8_t buffer[], dns_rr *rr) {
     int size = 0;
 
-    unsigned char *rdomain[DOMAIN_MAX_LENGTH] = {0};
+    unsigned char rdomain[DOMAIN_MAX_LENGTH] = {0};
     serialize_domain(rdomain, rr->domain);
     strcpy(buffer, rdomain);
     size += strlen(rdomain) + 1;
@@ -217,7 +217,7 @@ int add_domain_rr(uint8_t buffer[], dns_rr *rr) {
 int add_ip_rr(uint8_t buffer[], dns_rr *rr) {
     int size = 0;
 
-    unsigned char *rdomain[DOMAIN_MAX_LENGTH] = {0};
+    unsigned char rdomain[DOMAIN_MAX_LENGTH] = {0};
     serialize_domain(rdomain, rr->domain);
     strcpy(buffer, rdomain);
     size += strlen(rdomain) + 1;

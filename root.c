@@ -36,26 +36,38 @@ int main() {
             printf(" > Query: \t%s\n", query->domain);
 
             if (query->type == PTR) {
+                char ip[DOMAIN_MAX_LENGTH] = {0}, rdomain[DOMAIN_MAX_LENGTH] = {0};
+                char *origin = query->domain;
+                serialize_domain(rdomain, origin);
+                parse_ptr(ip, rdomain);
+                query->domain = malloc(strlen(ip) + 1);
+                strcpy(query->domain, ip);
+                free(origin);
+
                 init_header(header, header->id,
                             generate_flags(QR_RESPONSE, OP_INV, 1, R_FINE),
                             header->num_query, 0, 1, 1);
                 dns_rr *rr = (dns_rr *)malloc(sizeof(dns_rr));
-                char *domain = (char *)malloc(7);
-                strcpy(domain, "ns.ptr");
+                char *ns_ptr = (char *)malloc(7);
+                strcpy(ns_ptr, "ns.ptr");
                 char *data = (char *)malloc(10);
                 strcpy(data, "127.1.1.3");
-                init_rr(rr, domain, PTR, 86400, data);
+                init_rr(rr, ns_ptr, NS, 86400, ns_ptr);
                 int a_idx = find_a_by_domain(records, count, rr->domain);
 
+                length = 0;
                 length += add_header(buffer + 2, header);
                 length += add_query(buffer + 2 + length, query);
                 length += add_domain_rr(buffer + 2 + length, rr);
                 length += add_ip_rr(buffer + 2 + length, records + a_idx);
                 *((uint16_t *)buffer) = htons(length);
 
+                tcp_send(client_sock, buffer, length + 2);
+
                 printf(" > NS Domain: \tns.ptr\n");
                 printf(" > NS IP: \t%s\n", records[a_idx].data);
                 printf("****************************************\n");
+                break;
             }
 
             length = 0;

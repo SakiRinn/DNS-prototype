@@ -1,5 +1,6 @@
 microsoft.com 86400 IN NS ns.com.org
 ietf.org 86400 IN NS ns.com.org
+ns.ptr 86400 IN NS ns.ptr
 cn 86400 IN NS ns.cn.us
 us 86400 IN NS ns.cn.us
 ns.com.org 86400 IN A 127.1.1.1

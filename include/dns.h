@@ -4,7 +4,7 @@
 #include "data.h"
 #include <netinet/in.h>
 
-#define DNS_PORT 53
+#define DNS_PORT 5353
 #define SENDER_PORT 50000
 
 #define DOMAIN_MAX_LEVEL 16
