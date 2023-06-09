@@ -1,5 +1,5 @@
-#ifndef SOCKET_H_
-#define SOCKET_H_
+#ifndef SOCKET_H
+#define SOCKET_H
 
 #include <netinet/in.h>
 #include <stdio.h>
