@@ -94,6 +94,7 @@ int main() {
             printf("****************************************\n");
             continue;
         }
+        free_records(caches, cache_count);
 
         int tcp_sock = tcp_socket();
         set_socket_reuse(tcp_sock);
