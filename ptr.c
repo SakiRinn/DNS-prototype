@@ -34,6 +34,7 @@ int main() {
 
             printf("\n********* Receive a new query! *********\n");
             printf(" > Query: \t%s\n", query->domain);
+            printf(" > Type: \t%s\n", type_to_string(query->type));
 
             char ip[DOMAIN_MAX_LENGTH] = {0}, rdomain[DOMAIN_MAX_LENGTH] = {0};
             char *origin = query->domain;

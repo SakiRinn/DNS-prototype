@@ -80,6 +80,21 @@ uint16_t get_type(const char type[]) {
         return 0;
 }
 
+const char *type_to_string(uint16_t type) {
+    if (type == A)
+        return "A";
+    else if (type == NS)
+        return "NS";
+    else if (type == CNAME)
+        return "CNAME";
+    else if (type == MX)
+        return "MX";
+    else if (type == PTR)
+        return "PTR";
+    else
+        exit(EXIT_FAILURE);
+}
+
 uint16_t get_class(const char class[]) {
     if (!strcmp("IN", class))
         return IN;
@@ -115,28 +130,39 @@ void serialize_domain(unsigned char rdomain[], const char domain[]) {
 }
 
 void parse_ptr(char ip[], const unsigned char rdomain[]) {
-    int i = 0;
-    char tmp[128];
-    for (int j = 0; j < 4; j++) {
-        memcpy(tmp + i, rdomain + i + 1, rdomain[i]);
-        i += (rdomain[i] + 1);
-        tmp[i - 1] = '.';
+    char tmp[DOMAIN_MAX_LENGTH] = {0};
+    parse_domain(tmp, rdomain);
+
+    int length = strlen(tmp) - 13;
+    memset(tmp + length, 0, DOMAIN_MAX_LENGTH - length);
+
+    char *tmps[4];
+    split(tmps, tmp);
+
+    length = 0;
+    for (int i = 0; i < 4; i++) {
+        strcpy(ip + length, tmps[3 - i]);
+        length += strlen(tmps[3 - i]) + 1;
+        ip[length - 1] = '.';
     }
-    tmp[i - 1] = '\0';
-    int len = strlen(tmp);
-    for (int j = 0; j < len; j++) {
-        ip[j] = tmp[len - j - 1];
-    }
+    ip[length - 1] = '\0';
 }
 
 void serialize_ptr(unsigned char rdomain[], const char ip[]) {
-    char tmp[128] = {0};
+    char tmp[DOMAIN_MAX_LENGTH] = {0}, domain[DOMAIN_MAX_LENGTH] = {0};
     strcpy(tmp, ip);
-    int len = strlen(ip);
 
-    for (int i = 0; i < len; i++) {
-        tmp[i] = ip[len - i - 1];
+    char *tmps[4];
+    split(tmps, tmp);
+
+    int length = 0;
+    for (int i = 0; i < 4; i++) {
+        strcpy(domain + length, tmps[3 - i]);
+        length += strlen(tmps[3 - i]) + 1;
+        domain[length - 1] = '.';
     }
-    strcat(tmp, ".in-addr.arpa");
-    serialize_domain(rdomain, tmp);
+    domain[length - 1] = '\0';
+
+    strcat(domain, ".in-addr.arpa");
+    serialize_domain(rdomain, domain);
 }

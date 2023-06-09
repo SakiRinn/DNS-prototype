@@ -5,6 +5,7 @@
 #include "socket.h"
 #include <netinet/in.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <time.h>
 
@@ -57,6 +58,8 @@ int main(int argc, char *argv[]) {
     length += parse_query(query, buffer + length);
 
     printf("\n************* DNS Response *************\n");
+    printf(" > Query: \t%s\n", query->domain);
+    printf(" > Type: \t%s\n", type_to_string(query->type));
     dns_rr *rr = (dns_rr *)malloc(sizeof(dns_rr));
 
     if ((header->flags & 0xF) == R_NAME_ERROR) {

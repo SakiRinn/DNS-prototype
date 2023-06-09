@@ -27,7 +27,8 @@ ssize_t load_records(dns_rr *records[], const char path[]) {
         rr->data = (char *)realloc(rr->data, (strlen(rr->data) + 1));
         rr->type = get_type(type);
         rr->class = get_class(class);
-        rr->length = (rr->type == MX) ? strlen(rr->data) + 4 : strlen(rr->data) + 2;
+        rr->length =
+            (rr->type == MX) ? strlen(rr->data) + 4 : strlen(rr->data) + 2;
 
         if ((count + 1) % ARRAY_CAPACITY == 0) {
             *records = (dns_rr *)realloc(*records, (count + ARRAY_CAPACITY) *
@@ -41,7 +42,9 @@ ssize_t load_records(dns_rr *records[], const char path[]) {
 
 int find_ns_by_query(dns_rr records[], int count, dns_query *query) {
     for (int i = 0; i < count; i++) {
-        if (records[i].type == NS && strstr(query->domain, records[i].domain))
+        if (records[i].type == NS &&
+            strstr(query->type == PTR ? "in-addr.arpa" : query->domain,
+                   records[i].domain))
             return i;
     }
     return -1;

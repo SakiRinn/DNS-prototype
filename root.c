@@ -34,9 +34,11 @@ int main() {
 
             printf("\n********* Receive a new query! *********\n");
             printf(" > Query: \t%s\n", query->domain);
+            printf(" > Type: \t%s\n", type_to_string(query->type));
 
             if (query->type == PTR) {
-                char ip[DOMAIN_MAX_LENGTH] = {0}, rdomain[DOMAIN_MAX_LENGTH] = {0};
+                char ip[DOMAIN_MAX_LENGTH] = {0},
+                     rdomain[DOMAIN_MAX_LENGTH] = {0};
                 char *origin = query->domain;
                 serialize_domain(rdomain, origin);
                 parse_ptr(ip, rdomain);
@@ -47,18 +49,16 @@ int main() {
                 init_header(header, header->id,
                             generate_flags(QR_RESPONSE, OP_INV, 1, R_FINE),
                             header->num_query, 0, 1, 1);
-                dns_rr *rr = (dns_rr *)malloc(sizeof(dns_rr));
-                char *ns_ptr = (char *)malloc(8);
-                strcpy(ns_ptr, "ns.ptr");
-                char *data = (char *)malloc(10);
-                strcpy(data, "127.1.1.3");
-                init_rr(rr, ns_ptr, NS, 86400, ns_ptr);
-                int a_idx = find_a_by_domain(records, count, rr->domain);
+                int ns_idx = find_ns_by_query(records, count, query);
+                int a_idx =
+                    find_a_by_domain(records, count, records[ns_idx].data);
+                if (ns_idx == -1 || a_idx == -1)
+                    perror("Database error");
 
                 length = 0;
                 length += add_header(buffer + 2, header);
                 length += add_query(buffer + 2 + length, query);
-                length += add_domain_rr(buffer + 2 + length, rr);
+                length += add_domain_rr(buffer + 2 + length, records + ns_idx);
                 length += add_ip_rr(buffer + 2 + length, records + a_idx);
                 *((uint16_t *)buffer) = htons(length);
 

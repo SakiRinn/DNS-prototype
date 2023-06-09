@@ -42,6 +42,7 @@ int main() {
 
         printf("\n********* Receive a new query! *********\n");
         printf(" > Query: \t%s\n", query->domain);
+        printf(" > Type: \t%s\n", type_to_string(query->type));
 
         memcpy(buffer, query_buffer, BUFSIZE);
         memset(query_buffer, 0, BUFSIZE);
@@ -50,7 +51,18 @@ int main() {
 
         dns_rr *caches;
         int cache_count = load_records(&caches, "./data/cache.txt");
-        int idx = find_rr(caches, cache_count, query->domain, query->type);
+
+        int idx;
+        if (query->type == PTR) {
+            char ip[DOMAIN_MAX_LENGTH] = {0}, rdomain[DOMAIN_MAX_LENGTH] = {0};
+            char *origin = query->domain;
+            serialize_domain(rdomain, origin);
+            parse_ptr(ip, rdomain);
+            free(origin);
+            idx = find_rr(caches, cache_count, ip, query->type);
+        } else
+            idx = find_rr(caches, cache_count, query->domain, query->type);
+
         if (idx != -1) {
             length = udp_recv_len;
             init_header(header, header->id,
@@ -159,8 +171,7 @@ int main() {
                 length = udp_recv_len;
                 for (int i = 0; i < num_rr; i++) {
                     length += parse_rr(rr, buffer + 2 + length);
-                    if (rr->type != PTR)
-                        save_rr(*rr, "./data/cache.txt");
+                    save_rr(*rr, "./data/cache.txt");
                 }
                 printf(" Success to add %d new cache record(s).\n", num_rr);
                 printf("****************************************\n");

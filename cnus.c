@@ -33,6 +33,7 @@ int main() {
 
             printf("\n********* Receive a new query! *********\n");
             printf(" > Query: \t%s\n", query->domain);
+            printf(" > Type: \t%s\n", type_to_string(query->type));
 
             length = 0;
             int ns_idx = find_ns_by_query(records, count, query);
