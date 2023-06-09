@@ -102,6 +102,13 @@ uint16_t get_class(const char class[]) {
         return 0;
 }
 
+const char *class_to_string(uint16_t class) {
+    if (class == IN)
+        return "IN";
+    else
+        exit(EXIT_FAILURE);
+}
+
 void parse_domain(char domain[], const unsigned char rdomain[]) {
     int i = 0;
     while (rdomain[i] != '\0') {

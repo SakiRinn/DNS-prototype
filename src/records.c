@@ -79,19 +79,7 @@ void save_rr(dns_rr rr, const char path[]) {
     if (f == NULL)
         exit(EXIT_FAILURE);
     fseek(f, 0, SEEK_END);
-
-    fprintf(f, "%s %u ", rr.domain, rr.ttl);
-    if (rr.class == IN)
-        fprintf(f, "IN ");
-    if (rr.type == A)
-        fprintf(f, "A ");
-    else if (rr.type == CNAME)
-        fprintf(f, "CNAME ");
-    else if (rr.type == MX)
-        fprintf(f, "MX ");
-    else if (rr.type == PTR)
-        fprintf(f, "PTR ");
-    fprintf(f, "%s\n", rr.data);
-
+    fprintf(f, "%s %u %s %s %s\n", rr.domain, rr.ttl, class_to_string(rr.class),
+            type_to_string(rr.type), rr.data);
     fclose(f);
 }

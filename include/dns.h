@@ -4,7 +4,7 @@
 #include "data.h"
 #include <netinet/in.h>
 
-#define DNS_PORT 5353
+#define DNS_PORT 53
 #define SENDER_PORT 50000
 
 #define DOMAIN_MAX_LEVEL 16
@@ -38,8 +38,9 @@ void init_receiver_addr(struct sockaddr_in *sockaddr, const char addr[]);
 void init_sender_addr(struct sockaddr_in *sockaddr, const char addr[]);
 
 uint16_t get_type(const char type[]);
-uint16_t get_class(const char class[]);
 const char *type_to_string(uint16_t type);
+uint16_t get_class(const char class[]);
+const char *class_to_string(uint16_t class);
 
 void parse_domain(char domain[], const unsigned char rdomain[]);
 void serialize_domain(unsigned char rdomain[], const char domain[]);
