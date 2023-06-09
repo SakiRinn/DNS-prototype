@@ -66,10 +66,10 @@ int main(int argc, char *argv[]) {
         printf(" > Not found!\n");
     } else {
         parse_rr(rr, buffer + length);
-        printf(" > Result:\t %s\n", rr->data);
+        printf(" > Result: \t%s\n", rr->data);
     }
 
-    printf(" > Total time:\t %.2f us\n", us);
+    printf(" > Total time: \t%.2f us\n", us);
     printf("****************************************\n");
 
     free(header);

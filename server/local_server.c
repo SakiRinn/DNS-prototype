@@ -173,6 +173,7 @@ int main() {
                     length += parse_rr(rr, buffer + 2 + length);
                     save_rr(*rr, "./data/cache.txt");
                 }
+                printf(" > Result: \t%s\n", rr->data);
                 printf(" Success to add %d new cache record(s).\n", num_rr);
                 printf("****************************************\n");
                 break;
