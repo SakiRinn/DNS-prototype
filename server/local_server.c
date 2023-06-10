@@ -111,6 +111,9 @@ int main() {
 
         printf(" > Trace to \troot (%s)\n", ROOT_SERVER_IP);
 
+        /**
+         * Iterative Query Part
+         */
         while (1) {
             // Receive and deal with the response from a specific server.
             memset(buffer, 0, BUFSIZE);
@@ -120,7 +123,7 @@ int main() {
 
             if ((header->flags & 0xF) == R_NAME_ERROR) {
                 /**
-                 * No Result
+                 * Query Failure Part
                  */
                 header->flags = generate_flags(
                     QR_RESPONSE, query->type == PTR ? OP_INV : OP_STD, 0,
@@ -136,7 +139,7 @@ int main() {
                 break;
             } else if (header->num_answer_rr == 0) {
                 /**
-                 * NS Forwarding
+                 * NS Forwarding Part
                  */
                 int count = header->num_authority_rr + header->num_addition_rr;
                 dns_rr *records = (dns_rr *)malloc(count * sizeof(dns_rr));
@@ -171,7 +174,7 @@ int main() {
                 }
             } else {
                 /**
-                 * Query success
+                 * Query Success Part
                  */
                 memcpy(query_buffer + 2 + udp_recv_len, buffer + 2 + length,
                        tcp_recv_len - 2 - length);

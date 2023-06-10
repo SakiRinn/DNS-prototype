@@ -41,7 +41,9 @@ int main() {
             printf(" > Query: \t%s\n", query->domain);
             printf(" > Type: \t%s\n", type_to_string(query->type));
 
-            // Deal with the PTR query.
+            /**
+             * PTR Part
+             */
             if (query->type == PTR) {
                 char ip[DOMAIN_MAX_LENGTH] = {0},
                      rdomain[DOMAIN_MAX_LENGTH] = {0};
@@ -75,7 +77,9 @@ int main() {
                 break;
             }
 
-            // Fill and send the packet.
+            /**
+             * NS Forwarding Part
+             */
             length = 0;
             int ns_idx = find_ns_by_query(records, count, query);
             if (ns_idx != -1) {

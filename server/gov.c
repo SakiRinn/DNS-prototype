@@ -21,7 +21,7 @@ int main() {
     int count = load_records(&records, "./data/gov.txt");
 
     while (1) {
-        // Accept a new connection.w
+        // Accept a new connection.
         int client_sock = tcp_accept(sock, &local_server_addr);
         set_socket_reuse(client_sock);
         unsigned char buffer[BUFSIZE] = {0};
@@ -40,9 +40,13 @@ int main() {
             printf(" > Query: \t%s\n", query->domain);
             printf(" > Type: \t%s\n", type_to_string(query->type));
 
+            /**
+             * Query Part
+             */
             length = 0;
             int idx = find_rr(records, count, query->domain, query->type);
             if (idx != -1) {
+                // If found ?
                 init_header(header, header->id,
                             generate_flags(QR_RESPONSE, OP_STD, 0, R_FINE),
                             header->num_query, 1, 0, query->type == MX ? 1 : 0);
@@ -70,6 +74,7 @@ int main() {
                     printf(" > MX IP: \t%s\n", records[a_idx].data);
                 printf("****************************************\n");
             } else {
+                // If not found ?
                 init_header(
                     header, header->id,
                     generate_flags(QR_RESPONSE, OP_STD, 0, R_NAME_ERROR),

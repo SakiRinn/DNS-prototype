@@ -40,10 +40,13 @@ int main() {
             printf(" > Query: \t%s\n", query->domain);
             printf(" > Type: \t%s\n", type_to_string(query->type));
 
-            // Execute the query.
+            /**
+             * Query Part
+             */
             length = 0;
             int ns_idx = find_ns_by_query(records, count, query);
             if (ns_idx != -1) {
+                // If found ?
                 init_header(header, header->id,
                             generate_flags(QR_RESPONSE, OP_STD, 1, R_FINE),
                             header->num_query, 0, 1, 1);
@@ -63,6 +66,7 @@ int main() {
                 printf(" > NS IP: \t%s\n", records[a_idx].data);
                 printf("****************************************\n");
             } else {
+                // If not found ?
                 init_header(
                     header, header->id,
                     generate_flags(QR_RESPONSE, OP_STD, 1, R_NAME_ERROR),
