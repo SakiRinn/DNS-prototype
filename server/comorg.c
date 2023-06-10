@@ -5,23 +5,28 @@
 #include <string.h>
 
 int main() {
+    // Init address.
     struct sockaddr_in local_server_addr;
     struct sockaddr_in comorg_addr;
     init_receiver_addr(&comorg_addr, COMORG_SERVER_IP);
 
+    // Create TCP socket and set to the listen mode.
     int sock = tcp_socket();
     set_socket_reuse(sock);
     server_bind(sock, &comorg_addr);
     tcp_listen(sock);
 
+    // Load data.
     dns_rr *records;
     int count = load_records(&records, "./data/comorg.txt");
 
     while (1) {
+        // Accept a new connection.
         int client_sock = tcp_accept(sock, &local_server_addr);
         set_socket_reuse(client_sock);
         unsigned char buffer[BUFSIZE] = {0};
 
+        // Deal with the received information.
         int receive_len = 0;
         while (receive_len = tcp_receive(client_sock, buffer)) {
             dns_header *header = (dns_header *)malloc(sizeof(dns_header));
@@ -75,9 +80,11 @@ int main() {
                 printf(" [NO Result] Fail to match the domain!\n");
                 printf("****************************************\n");
             }
+            // Sent the packet.
+            tcp_send(client_sock, buffer, length + 2);
+            // Release memory.
             free(header);
             free_query(query);
-            tcp_send(client_sock, buffer, length + 2);
             break;
         }
         close(client_sock);

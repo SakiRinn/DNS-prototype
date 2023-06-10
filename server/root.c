@@ -7,22 +7,27 @@
 #include <string.h>
 
 int main() {
+    // Init address.
     struct sockaddr_in local_server_addr;
     struct sockaddr_in root_addr;
     init_receiver_addr(&root_addr, ROOT_SERVER_IP);
 
+    // Create TCP socket and set to the listen mode.
     int sock = tcp_socket();
     set_socket_reuse(sock);
     server_bind(sock, &root_addr);
     tcp_listen(sock);
 
+    // Load data.
     dns_rr *records;
     int count = load_records(&records, "./data/root.txt");
 
     while (1) {
+        // Accept a new connection.
         int client_sock = tcp_accept(sock, &local_server_addr);
         unsigned char buffer[BUFSIZE] = {0};
 
+        // Deal with the received information.
         int receive_len = 0;
         while (receive_len = tcp_receive(client_sock, buffer)) {
             dns_header *header = (dns_header *)malloc(sizeof(dns_header));
@@ -36,6 +41,7 @@ int main() {
             printf(" > Query: \t%s\n", query->domain);
             printf(" > Type: \t%s\n", type_to_string(query->type));
 
+            // Deal with the PTR query.
             if (query->type == PTR) {
                 char ip[DOMAIN_MAX_LENGTH] = {0},
                      rdomain[DOMAIN_MAX_LENGTH] = {0};
@@ -69,6 +75,7 @@ int main() {
                 break;
             }
 
+            // Fill and send the packet.
             length = 0;
             int ns_idx = find_ns_by_query(records, count, query);
             if (ns_idx != -1) {
@@ -110,6 +117,7 @@ int main() {
         }
         close(client_sock);
     }
+    // Release memory
     free_records(records, count);
     close(sock);
 }

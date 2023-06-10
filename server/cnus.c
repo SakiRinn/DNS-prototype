@@ -6,22 +6,27 @@
 #include <string.h>
 
 int main() {
+    // Init address.
     struct sockaddr_in local_server_addr;
     struct sockaddr_in cnus_addr;
     init_receiver_addr(&cnus_addr, CNUS_SERVER_IP);
 
+    // Create TCP socket and set to the listen mode.
     int sock = tcp_socket();
     set_socket_reuse(sock);
     server_bind(sock, &cnus_addr);
     tcp_listen(sock);
 
+    // Load data.
     dns_rr *records;
     int count = load_records(&records, "./data/cnus.txt");
 
     while (1) {
+        // Accept a new connection.
         int client_sock = tcp_accept(sock, &local_server_addr);
         unsigned char buffer[BUFSIZE] = {0};
 
+        // Deal with the received information.
         int receive_len = 0;
         while (receive_len = tcp_receive(client_sock, buffer)) {
             dns_header *header = (dns_header *)malloc(sizeof(dns_header));
@@ -35,6 +40,7 @@ int main() {
             printf(" > Query: \t%s\n", query->domain);
             printf(" > Type: \t%s\n", type_to_string(query->type));
 
+            // Execute the query.
             length = 0;
             int ns_idx = find_ns_by_query(records, count, query);
             if (ns_idx != -1) {
@@ -69,9 +75,11 @@ int main() {
                 printf(" [NO NS] Fail to match the domain!\n");
                 printf("****************************************\n");
             }
+            // Send the packet.
+            tcp_send(client_sock, buffer, length + 2);
+            // Release memory.
             free(header);
             free_query(query);
-            tcp_send(client_sock, buffer, length + 2);
             break;
         }
         close(client_sock);

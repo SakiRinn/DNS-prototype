@@ -13,6 +13,7 @@
 #include <unistd.h>
 
 int main() {
+    // Init address.
     struct sockaddr_in client_addr;
     init_receiver_addr(&client_addr, CLIENT_IP);
     struct sockaddr_in receive_addr;
@@ -22,6 +23,7 @@ int main() {
     struct sockaddr_in root_server_addr;
     init_receiver_addr(&root_server_addr, ROOT_SERVER_IP);
 
+    // Create TCP socket and set to the listen mode.
     int udp_sock = udp_socket();
     set_socket_reuse(udp_sock);
     server_bind(udp_sock, &receive_addr);
@@ -36,6 +38,7 @@ int main() {
         dns_header *header = (dns_header *)malloc(sizeof(dns_header));
         dns_query *query = (dns_query *)malloc(sizeof(dns_query));
 
+        // Receive and deal with the query from client.
         int udp_recv_len = udp_receive(udp_sock, &client_addr, query_buffer);
         uint16_t length = parse_header(header, query_buffer);
         parse_query(query, query_buffer + length);
@@ -49,6 +52,9 @@ int main() {
         memcpy(query_buffer + 2, buffer, udp_recv_len);
         *((uint16_t *)query_buffer) = htons(udp_recv_len);
 
+        /**
+         * Cache Part
+         */
         dns_rr *caches;
         int cache_count = load_records(&caches, "./data/cache.txt");
 
@@ -96,6 +102,7 @@ int main() {
         }
         free_records(caches, cache_count);
 
+        // Create TCP socket and set to the listen mode.
         int tcp_sock = tcp_socket();
         set_socket_reuse(tcp_sock);
         server_bind(tcp_sock, &send_addr);
@@ -105,16 +112,21 @@ int main() {
         printf(" > Trace to \troot (%s)\n", ROOT_SERVER_IP);
 
         while (1) {
+            // Receive and deal with the response from a specific server.
             memset(buffer, 0, BUFSIZE);
             int tcp_recv_len = tcp_receive(tcp_sock, buffer);
             length = parse_header(header, buffer + 2);
             length += parse_query(query, buffer + 2 + length);
 
             if ((header->flags & 0xF) == R_NAME_ERROR) {
+                /**
+                 * No Result
+                 */
                 header->flags = generate_flags(
                     QR_RESPONSE, query->type == PTR ? OP_INV : OP_STD, 0,
                     R_NAME_ERROR);
                 add_header(query_buffer + 2, header);
+                // Only header has been sended back to the client.
                 udp_send(udp_sock, &client_addr, query_buffer + 2,
                          udp_recv_len);
                 close(tcp_sock);
@@ -123,7 +135,9 @@ int main() {
                 printf("****************************************\n");
                 break;
             } else if (header->num_answer_rr == 0) {
-
+                /**
+                 * NS Forwarding
+                 */
                 int count = header->num_authority_rr + header->num_addition_rr;
                 dns_rr *records = (dns_rr *)malloc(count * sizeof(dns_rr));
                 for (int i = 0; i < count; i++)
@@ -140,6 +154,7 @@ int main() {
                         printf(" > Trace to \t%s (%s)\n", records[0].data,
                                records[a_idx].data);
 
+                        // Attempt a query to the NS.
                         close(tcp_sock);
                         tcp_sock = tcp_socket();
                         set_socket_reuse(tcp_sock);
@@ -155,16 +170,21 @@ int main() {
                     break;
                 }
             } else {
+                /**
+                 * Query success
+                 */
                 memcpy(query_buffer + 2 + udp_recv_len, buffer + 2 + length,
                        tcp_recv_len - 2 - length);
                 init_header(header, header->id,
                             generate_flags(QR_RESPONSE, OP_STD, 0, R_FINE),
                             header->num_query, 1, 0, query->type == MX ? 1 : 0);
                 add_header(query_buffer + 2, header);
+                // Send the result to the client
                 udp_send(udp_sock, &client_addr, query_buffer + 2,
                          tcp_recv_len - 2);
                 close(tcp_sock);
 
+                // Save the received RRs to the file.
                 int num_rr = header->num_answer_rr + header->num_authority_rr +
                              header->num_addition_rr;
                 dns_rr *rr = (dns_rr *)malloc(sizeof(dns_rr));
