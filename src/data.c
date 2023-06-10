@@ -102,6 +102,7 @@ int add_query(uint8_t buffer[], dns_query *query) {
     int size = 0;
 
     unsigned char rdomain[DOMAIN_MAX_LENGTH] = {0};
+    // serialize the domain of the query.
     if (query->type == PTR)
         serialize_ptr(rdomain, query->domain);
     else
@@ -136,6 +137,7 @@ void init_rr(dns_rr *rr, char domain[], uint16_t type, uint32_t ttl,
 int parse_rr(dns_rr *rr, uint8_t buffer[]) {
     int size = 0;
 
+    // Parse the domain.
     unsigned char rdomain[DOMAIN_MAX_LENGTH] = {0};
     strcpy(rdomain, buffer);
     rr->domain = (char *)malloc(strlen(rdomain) + 1);
@@ -151,6 +153,7 @@ int parse_rr(dns_rr *rr, uint8_t buffer[]) {
     rr->length = ntohs(*(uint16_t *)(buffer + size));
     size += sizeof(uint16_t);
 
+    // Parse the data.
     if (rr->type == A) {
         char addr_string[DOMAIN_MAX_LENGTH] = {0};
         addr_to_string(addr_string, *(uint32_t *)(buffer + size));
@@ -204,6 +207,7 @@ int add_domain_rr(uint8_t buffer[], dns_rr *rr) {
 
     memset(rdomain, 0, DOMAIN_MAX_LENGTH);
     serialize_domain(rdomain, rr->data);
+    // Set the buffer to the current buffer.
     if (rr->type == MX) {
         memset(buffer + size, 0, 2);
         size += 2;

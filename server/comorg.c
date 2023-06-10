@@ -49,7 +49,7 @@ int main() {
                     length += add_ip_rr(buffer + 2 + length, records + idx);
                 else if (query->type == MX) {
                     length += add_domain_rr(buffer + 2 + length, records + idx);
-                    a_idx = find_a_by_domain(records, count, records[idx].data);
+                    a_idx = find_rr(records, count, records[idx].data, A);
                     if (a_idx == -1) {
                         perror("Database error");
                         exit(EXIT_FAILURE);

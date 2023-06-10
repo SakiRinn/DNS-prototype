@@ -50,8 +50,7 @@ int main() {
                             generate_flags(QR_RESPONSE, OP_INV, 1, R_FINE),
                             header->num_query, 0, 1, 1);
                 int ns_idx = find_ns_by_query(records, count, query);
-                int a_idx =
-                    find_a_by_domain(records, count, records[ns_idx].data);
+                int a_idx = find_rr(records, count, records[ns_idx].data, A);
                 if (ns_idx == -1 || a_idx == -1)
                     perror("Database error");
 
@@ -76,8 +75,7 @@ int main() {
                 init_header(header, header->id,
                             generate_flags(QR_RESPONSE, OP_STD, 1, R_FINE),
                             header->num_query, 0, 1, 1);
-                int a_idx =
-                    find_a_by_domain(records, count, records[ns_idx].data);
+                int a_idx = find_rr(records, count, records[ns_idx].data, A);
                 if (a_idx == -1) {
                     perror("Database error");
                     exit(EXIT_FAILURE);

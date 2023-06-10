@@ -11,6 +11,7 @@ uint16_t generate_random_id() {
 }
 
 uint16_t generate_flags(uint8_t QR, uint8_t opcode, uint8_t AA, uint8_t rcode) {
+    // QR AA must be 0 or 1
     if ((QR != 0 && QR != 1) || (AA != 0 && AA != 1))
         perror("QR or AA must be 1 byte! (only 0/1 supported)");
     return ((uint16_t)QR << 15) + ((uint16_t)opcode << 11) +
@@ -22,6 +23,7 @@ void split(char *strings[], char string[]) {
     int j = 1;
     unsigned long len = strlen(string);
     for (int i = 0; i < len; i++) {
+        // Replace the dot with '\0' (the end of string)
         if (string[i] == '.') {
             string[i] = '\0';
             strings[j] = string + (i + 1);
@@ -36,6 +38,7 @@ uint32_t addr_to_binary(const char addr_string[]) {
     char *strings[4];
     split(strings, addr);
 
+    // Returns the address of the binary data
     unsigned int addr_binary = 0;
     for (int i = 0; i < 4; i++) {
         addr_binary += (unsigned int)atoi(strings[i]) << 8 * (3 - i);
@@ -146,6 +149,7 @@ void parse_ptr(char ip[], const unsigned char rdomain[]) {
     char *tmps[4];
     split(tmps, tmp);
 
+    // Reverse IP address.
     length = 0;
     for (int i = 0; i < 4; i++) {
         strcpy(ip + length, tmps[3 - i]);
@@ -162,6 +166,7 @@ void serialize_ptr(unsigned char rdomain[], const char ip[]) {
     char *tmps[4];
     split(tmps, tmp);
 
+    // Reverse IP address.
     int length = 0;
     for (int i = 0; i < 4; i++) {
         strcpy(domain + length, tmps[3 - i]);
@@ -170,6 +175,7 @@ void serialize_ptr(unsigned char rdomain[], const char ip[]) {
     }
     domain[length - 1] = '\0';
 
+    // Adds a fixed suffix format (.in-addr.arpa)
     strcat(domain, ".in-addr.arpa");
     serialize_domain(rdomain, domain);
 }

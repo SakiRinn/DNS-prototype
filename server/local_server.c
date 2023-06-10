@@ -76,7 +76,7 @@ int main() {
             else if (query->type == MX) {
                 length +=
                     add_domain_rr(query_buffer + 2 + length, caches + idx);
-                a_idx = find_a_by_domain(caches, cache_count, caches[idx].data);
+                a_idx = find_rr(caches, cache_count, caches[idx].data, A);
                 if (a_idx == -1) {
                     perror("Cache error");
                     exit(EXIT_FAILURE);
@@ -130,8 +130,7 @@ int main() {
                     length += parse_rr(records + i, buffer + 2 + length);
 
                 if (records[0].type == NS) {
-                    int a_idx =
-                        find_a_by_domain(records, count, records[0].data);
+                    int a_idx = find_rr(records, count, records[0].data, A);
                     if (a_idx == -1) {
                         perror("NS forward error");
                         break;
